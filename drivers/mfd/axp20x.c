@@ -34,6 +34,7 @@
 
 static const char * const axp20x_model_names[] = {
 	"AXP152",
+	"AXP192",
 	"AXP202",
 	"AXP209",
 	"AXP221",
@@ -92,6 +93,35 @@ static const struct regmap_access_table axp20x_writeable_table = {
 static const struct regmap_access_table axp20x_volatile_table = {
 	.yes_ranges	= axp20x_volatile_ranges,
 	.n_yes_ranges	= ARRAY_SIZE(axp20x_volatile_ranges),
+};
+
+static const struct regmap_range axp192_writeable_ranges[] = {
+	regmap_reg_range(AXP192_DATACACHE(0), AXP192_DATACACHE(5)),
+	regmap_reg_range(AXP192_PWR_OUT_CTRL, AXP192_IRQ5_STATE),
+	regmap_reg_range(AXP20X_DCDC_MODE, AXP192_N_RSTO_CTRL),
+	regmap_reg_range(AXP20X_CC_CTRL, AXP20X_CC_CTRL),
+};
+
+static const struct regmap_range axp192_volatile_ranges[] = {
+	regmap_reg_range(AXP20X_PWR_INPUT_STATUS, AXP192_USB_OTG_STATUS),
+	regmap_reg_range(AXP192_IRQ1_STATE, AXP192_IRQ4_STATE),
+	regmap_reg_range(AXP192_IRQ5_STATE, AXP192_IRQ5_STATE),
+	regmap_reg_range(AXP20X_ACIN_V_ADC_H, AXP20X_IPSOUT_V_HIGH_L),
+	regmap_reg_range(AXP20X_TIMER_CTRL, AXP20X_TIMER_CTRL),
+	regmap_reg_range(AXP192_GPIO2_0_STATE, AXP192_GPIO2_0_STATE),
+	regmap_reg_range(AXP192_GPIO4_3_STATE, AXP192_GPIO4_3_STATE),
+	regmap_reg_range(AXP192_N_RSTO_CTRL, AXP192_N_RSTO_CTRL),
+	regmap_reg_range(AXP20X_CHRG_CC_31_24, AXP20X_CC_CTRL),
+};
+
+static const struct regmap_access_table axp192_writeable_table = {
+	.yes_ranges	= axp192_writeable_ranges,
+	.n_yes_ranges	= ARRAY_SIZE(axp192_writeable_ranges),
+};
+
+static const struct regmap_access_table axp192_volatile_table = {
+	.yes_ranges	= axp192_volatile_ranges,
+	.n_yes_ranges	= ARRAY_SIZE(axp192_volatile_ranges),
 };
 
 /* AXP22x ranges are shared with the AXP809, as they cover the same range */
@@ -220,6 +250,19 @@ static const struct resource axp152_pek_resources[] = {
 	DEFINE_RES_IRQ_NAMED(AXP152_IRQ_PEK_FAL_EDGE, "PEK_DBF"),
 };
 
+static const struct resource axp192_ac_power_supply_resources[] = {
+	DEFINE_RES_IRQ_NAMED(AXP192_IRQ_ACIN_PLUGIN, "ACIN_PLUGIN"),
+	DEFINE_RES_IRQ_NAMED(AXP192_IRQ_ACIN_REMOVAL, "ACIN_REMOVAL"),
+	DEFINE_RES_IRQ_NAMED(AXP192_IRQ_ACIN_OVER_V, "ACIN_OVER_V"),
+};
+
+static const struct resource axp192_usb_power_supply_resources[] = {
+	DEFINE_RES_IRQ_NAMED(AXP192_IRQ_VBUS_PLUGIN, "VBUS_PLUGIN"),
+	DEFINE_RES_IRQ_NAMED(AXP192_IRQ_VBUS_REMOVAL, "VBUS_REMOVAL"),
+	DEFINE_RES_IRQ_NAMED(AXP192_IRQ_VBUS_VALID, "VBUS_VALID"),
+	DEFINE_RES_IRQ_NAMED(AXP192_IRQ_VBUS_NOT_VALID, "VBUS_NOT_VALID"),
+};
+
 static const struct resource axp20x_ac_power_supply_resources[] = {
 	DEFINE_RES_IRQ_NAMED(AXP20X_IRQ_ACIN_PLUGIN, "ACIN_PLUGIN"),
 	DEFINE_RES_IRQ_NAMED(AXP20X_IRQ_ACIN_REMOVAL, "ACIN_REMOVAL"),
@@ -279,9 +322,23 @@ static const struct resource axp288_fuel_gauge_resources[] = {
 	DEFINE_RES_IRQ(AXP288_IRQ_WL1),
 };
 
-static const struct resource axp313a_pek_resources[] = {
-	DEFINE_RES_IRQ_NAMED(AXP313A_IRQ_PEK_RIS_EDGE, "PEK_DBR"),
-	DEFINE_RES_IRQ_NAMED(AXP313A_IRQ_PEK_FAL_EDGE, "PEK_DBF"),
+static const struct resource axp803_battery_resources[] = {
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_PLUGIN, "BATT_PLUGIN"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_REMOVAL, "BATT_REMOVAL"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_ENT_ACT_MODE, "BATT_HEALTH_DEAD"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_EXIT_ACT_MODE, "BATT_HEALTH_GOOD"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_CHARG, "BATT_CHARGING"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_CHARG_DONE, "BATT_CHARGING_DONE"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_CHG_TEMP_HIGH, "BATT_CHG_TEMP_HIGH"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_CHG_TEMP_HIGH_END, "BATT_CHG_TEMP_HIGH_END"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_CHG_TEMP_LOW, "BATT_CHG_TEMP_LOW"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_CHG_TEMP_LOW_END, "BATT_CHG_TEMP_LOW_END"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_ACT_TEMP_HIGH, "BATT_ACT_TEMP_HIGH"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_ACT_TEMP_HIGH_END, "BATT_ACT_TEMP_HIGH_END"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_ACT_TEMP_LOW, "BATT_ACT_TEMP_LOW"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_BATT_ACT_TEMP_LOW_END, "BATT_ACT_TEMP_LOW_END"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_LOW_PWR_LVL1, "BATT_LOW_PWR_LVL1"),
+	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_LOW_PWR_LVL2, "BATT_LOW_PWR_LVL2"),
 };
 
 static const struct resource axp803_battery_resources[] = {
@@ -329,6 +386,15 @@ static const struct regmap_config axp152_regmap_config = {
 	.wr_table	= &axp152_writeable_table,
 	.volatile_table	= &axp152_volatile_table,
 	.max_register	= AXP152_PWM1_DUTY_CYCLE,
+	.cache_type	= REGCACHE_RBTREE,
+};
+
+static const struct regmap_config axp192_regmap_config = {
+	.reg_bits	= 8,
+	.val_bits	= 8,
+	.wr_table	= &axp192_writeable_table,
+	.volatile_table	= &axp192_volatile_table,
+	.max_register	= AXP20X_CC_CTRL,
 	.cache_type	= REGCACHE_RBTREE,
 };
 
@@ -401,12 +467,48 @@ static const struct regmap_irq axp152_regmap_irqs[] = {
 	INIT_REGMAP_IRQ(AXP152, PEK_SHORT,		1, 1),
 	INIT_REGMAP_IRQ(AXP152, PEK_LONG,		1, 0),
 	INIT_REGMAP_IRQ(AXP152, TIMER,			2, 7),
-	INIT_REGMAP_IRQ(AXP152, PEK_RIS_EDGE,		2, 6),
 	INIT_REGMAP_IRQ(AXP152, PEK_FAL_EDGE,		2, 5),
+	INIT_REGMAP_IRQ(AXP152, PEK_RIS_EDGE,		2, 6),
 	INIT_REGMAP_IRQ(AXP152, GPIO3_INPUT,		2, 3),
 	INIT_REGMAP_IRQ(AXP152, GPIO2_INPUT,		2, 2),
 	INIT_REGMAP_IRQ(AXP152, GPIO1_INPUT,		2, 1),
 	INIT_REGMAP_IRQ(AXP152, GPIO0_INPUT,		2, 0),
+};
+
+static const struct regmap_irq axp192_regmap_irqs[] = {
+	INIT_REGMAP_IRQ(AXP192, ACIN_OVER_V,		0, 7),
+	INIT_REGMAP_IRQ(AXP192, ACIN_PLUGIN,		0, 6),
+	INIT_REGMAP_IRQ(AXP192, ACIN_REMOVAL,		0, 5),
+	INIT_REGMAP_IRQ(AXP192, VBUS_OVER_V,		0, 4),
+	INIT_REGMAP_IRQ(AXP192, VBUS_PLUGIN,		0, 3),
+	INIT_REGMAP_IRQ(AXP192, VBUS_REMOVAL,		0, 2),
+	INIT_REGMAP_IRQ(AXP192, VBUS_V_LOW,		0, 1),
+	INIT_REGMAP_IRQ(AXP192, BATT_PLUGIN,		1, 7),
+	INIT_REGMAP_IRQ(AXP192, BATT_REMOVAL,	        1, 6),
+	INIT_REGMAP_IRQ(AXP192, BATT_ENT_ACT_MODE,	1, 5),
+	INIT_REGMAP_IRQ(AXP192, BATT_EXIT_ACT_MODE,	1, 4),
+	INIT_REGMAP_IRQ(AXP192, CHARG,		        1, 3),
+	INIT_REGMAP_IRQ(AXP192, CHARG_DONE,		1, 2),
+	INIT_REGMAP_IRQ(AXP192, BATT_TEMP_HIGH,	        1, 1),
+	INIT_REGMAP_IRQ(AXP192, BATT_TEMP_LOW,	        1, 0),
+	INIT_REGMAP_IRQ(AXP192, DIE_TEMP_HIGH,	        2, 7),
+	INIT_REGMAP_IRQ(AXP192, CHARG_I_LOW,		2, 6),
+	INIT_REGMAP_IRQ(AXP192, DCDC1_V_LONG,	        2, 5),
+	INIT_REGMAP_IRQ(AXP192, DCDC2_V_LONG,	        2, 4),
+	INIT_REGMAP_IRQ(AXP192, DCDC3_V_LONG,	        2, 3),
+	INIT_REGMAP_IRQ(AXP192, PEK_SHORT,		2, 1),
+	INIT_REGMAP_IRQ(AXP192, PEK_LONG,		2, 0),
+	INIT_REGMAP_IRQ(AXP192, N_OE_PWR_ON,		3, 7),
+	INIT_REGMAP_IRQ(AXP192, N_OE_PWR_OFF,	        3, 6),
+	INIT_REGMAP_IRQ(AXP192, VBUS_VALID,		3, 5),
+	INIT_REGMAP_IRQ(AXP192, VBUS_NOT_VALID,	        3, 4),
+	INIT_REGMAP_IRQ(AXP192, VBUS_SESS_VALID,	3, 3),
+	INIT_REGMAP_IRQ(AXP192, VBUS_SESS_END,	        3, 2),
+	INIT_REGMAP_IRQ(AXP192, LOW_PWR_LVL,	        3, 0),
+	INIT_REGMAP_IRQ(AXP192, TIMER,			4, 7),
+	INIT_REGMAP_IRQ(AXP192, GPIO2_INPUT,		4, 2),
+	INIT_REGMAP_IRQ(AXP192, GPIO1_INPUT,		4, 1),
+	INIT_REGMAP_IRQ(AXP192, GPIO0_INPUT,		4, 0),
 };
 
 static const struct regmap_irq axp20x_regmap_irqs[] = {
@@ -441,8 +543,8 @@ static const struct regmap_irq axp20x_regmap_irqs[] = {
 	INIT_REGMAP_IRQ(AXP20X, LOW_PWR_LVL1,	        3, 1),
 	INIT_REGMAP_IRQ(AXP20X, LOW_PWR_LVL2,	        3, 0),
 	INIT_REGMAP_IRQ(AXP20X, TIMER,		        4, 7),
-	INIT_REGMAP_IRQ(AXP20X, PEK_RIS_EDGE,	        4, 6),
 	INIT_REGMAP_IRQ(AXP20X, PEK_FAL_EDGE,	        4, 5),
+	INIT_REGMAP_IRQ(AXP20X, PEK_RIS_EDGE,	        4, 6),
 	INIT_REGMAP_IRQ(AXP20X, GPIO3_INPUT,		4, 3),
 	INIT_REGMAP_IRQ(AXP20X, GPIO2_INPUT,		4, 2),
 	INIT_REGMAP_IRQ(AXP20X, GPIO1_INPUT,		4, 1),
@@ -471,8 +573,8 @@ static const struct regmap_irq axp22x_regmap_irqs[] = {
 	INIT_REGMAP_IRQ(AXP22X, LOW_PWR_LVL1,	        3, 1),
 	INIT_REGMAP_IRQ(AXP22X, LOW_PWR_LVL2,	        3, 0),
 	INIT_REGMAP_IRQ(AXP22X, TIMER,		        4, 7),
-	INIT_REGMAP_IRQ(AXP22X, PEK_RIS_EDGE,	        4, 6),
 	INIT_REGMAP_IRQ(AXP22X, PEK_FAL_EDGE,	        4, 5),
+	INIT_REGMAP_IRQ(AXP22X, PEK_RIS_EDGE,	        4, 6),
 	INIT_REGMAP_IRQ(AXP22X, GPIO1_INPUT,		4, 1),
 	INIT_REGMAP_IRQ(AXP22X, GPIO0_INPUT,		4, 0),
 };
@@ -556,8 +658,8 @@ static const struct regmap_irq axp803_regmap_irqs[] = {
 	INIT_REGMAP_IRQ(AXP803, LOW_PWR_LVL1,	        3, 1),
 	INIT_REGMAP_IRQ(AXP803, LOW_PWR_LVL2,	        3, 0),
 	INIT_REGMAP_IRQ(AXP803, TIMER,		        4, 7),
-	INIT_REGMAP_IRQ(AXP803, PEK_RIS_EDGE,	        4, 6),
 	INIT_REGMAP_IRQ(AXP803, PEK_FAL_EDGE,	        4, 5),
+	INIT_REGMAP_IRQ(AXP803, PEK_RIS_EDGE,	        4, 6),
 	INIT_REGMAP_IRQ(AXP803, PEK_SHORT,		4, 4),
 	INIT_REGMAP_IRQ(AXP803, PEK_LONG,		4, 3),
 	INIT_REGMAP_IRQ(AXP803, PEK_OVER_OFF,		4, 2),
@@ -608,8 +710,8 @@ static const struct regmap_irq axp809_regmap_irqs[] = {
 	INIT_REGMAP_IRQ(AXP809, LOW_PWR_LVL1,	        3, 1),
 	INIT_REGMAP_IRQ(AXP809, LOW_PWR_LVL2,	        3, 0),
 	INIT_REGMAP_IRQ(AXP809, TIMER,		        4, 7),
-	INIT_REGMAP_IRQ(AXP809, PEK_RIS_EDGE,	        4, 6),
 	INIT_REGMAP_IRQ(AXP809, PEK_FAL_EDGE,	        4, 5),
+	INIT_REGMAP_IRQ(AXP809, PEK_RIS_EDGE,	        4, 6),
 	INIT_REGMAP_IRQ(AXP809, PEK_SHORT,		4, 4),
 	INIT_REGMAP_IRQ(AXP809, PEK_LONG,		4, 3),
 	INIT_REGMAP_IRQ(AXP809, PEK_OVER_OFF,		4, 2),
@@ -643,6 +745,32 @@ static const struct regmap_irq_chip axp152_regmap_irq_chip = {
 	.irqs			= axp152_regmap_irqs,
 	.num_irqs		= ARRAY_SIZE(axp152_regmap_irqs),
 	.num_regs		= 3,
+};
+
+static unsigned int axp192_get_irq_reg(struct regmap_irq_chip_data *data,
+				       unsigned int base, int index)
+{
+	/* linear mapping for IRQ1 to IRQ4 */
+	if (index < 4)
+		return base + index;
+
+	/* handle IRQ5 separately */
+	if (base == AXP192_IRQ1_EN)
+		return AXP192_IRQ5_EN;
+
+	return AXP192_IRQ5_STATE;
+}
+
+static const struct regmap_irq_chip axp192_regmap_irq_chip = {
+	.name			= "axp192_irq_chip",
+	.status_base		= AXP192_IRQ1_STATE,
+	.ack_base		= AXP192_IRQ1_STATE,
+	.unmask_base		= AXP192_IRQ1_EN,
+	.init_ack_masked	= true,
+	.irqs			= axp192_regmap_irqs,
+	.num_irqs		= ARRAY_SIZE(axp192_regmap_irqs),
+	.num_regs		= 5,
+	.get_irq_reg		= axp192_get_irq_reg,
 };
 
 static const struct regmap_irq_chip axp20x_regmap_irq_chip = {
@@ -733,6 +861,27 @@ static const struct regmap_irq_chip axp15060_regmap_irq_chip = {
 	.irqs			= axp15060_regmap_irqs,
 	.num_irqs		= ARRAY_SIZE(axp15060_regmap_irqs),
 	.num_regs		= 2,
+};
+
+static const struct mfd_cell axp192_cells[] = {
+	{
+		.name		= "axp192-adc",
+		.of_compatible	= "x-powers,axp192-adc",
+	}, {
+		.name		= "axp20x-battery-power-supply",
+		.of_compatible	= "x-powers,axp192-battery-power-supply",
+	}, {
+		.name		= "axp20x-ac-power-supply",
+		.of_compatible	= "x-powers,axp202-ac-power-supply",
+		.num_resources	= ARRAY_SIZE(axp192_ac_power_supply_resources),
+		.resources	= axp192_ac_power_supply_resources,
+	}, {
+		.name		= "axp20x-usb-power-supply",
+		.of_compatible	= "x-powers,axp192-usb-power-supply",
+		.num_resources	= ARRAY_SIZE(axp192_usb_power_supply_resources),
+		.resources	= axp192_usb_power_supply_resources,
+	},
+	{	.name		= "axp20x-regulator" },
 };
 
 static const struct mfd_cell axp20x_cells[] = {
@@ -1064,6 +1213,12 @@ int axp20x_match_device(struct axp20x_dev *axp20x)
 		axp20x->cells = axp152_cells;
 		axp20x->regmap_cfg = &axp152_regmap_config;
 		axp20x->regmap_irq_chip = &axp152_regmap_irq_chip;
+		break;
+	case AXP192_ID:
+		axp20x->nr_cells = ARRAY_SIZE(axp192_cells);
+		axp20x->cells = axp192_cells;
+		axp20x->regmap_cfg = &axp192_regmap_config;
+		axp20x->regmap_irq_chip = &axp192_regmap_irq_chip;
 		break;
 	case AXP202_ID:
 	case AXP209_ID:

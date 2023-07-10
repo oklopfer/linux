@@ -963,6 +963,12 @@ static struct ccu_mux_nb sun50i_a64_cpu_nb = {
 	.bypass_index	= 1, /* index of 24 MHz oscillator */
 };
 
+static struct ccu_rate_reset_nb sun50i_a64_pll_video0_reset_tcon0_nb = {
+	.common		= &pll_video0_clk.common,
+};
+
+#define CCU_MIPI_DSI_CLK 0x168
+
 static int sun50i_a64_ccu_probe(struct platform_device *pdev)
 {
 	void __iomem *reg;
@@ -1000,6 +1006,10 @@ static int sun50i_a64_ccu_probe(struct platform_device *pdev)
 	/* Reparent CPU during PLL CPU rate changes */
 	ccu_mux_notifier_register(pll_cpux_clk.common.hw.clk,
 				  &sun50i_a64_cpu_nb);
+
+	/* Reset the rate of TCON0 clock when PLL-VIDEO0 is changed */
+	sun50i_a64_pll_video0_reset_tcon0_nb.target_clk = tcon0_clk.common.hw.clk;
+	ccu_rate_reset_notifier_register(&sun50i_a64_pll_video0_reset_tcon0_nb);
 
 	return 0;
 }

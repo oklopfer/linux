@@ -633,9 +633,12 @@ module_init(rockchip_cpufreq_driver_init);
 
 static void __exit rockchip_cpufreq_driver_exit(void)
 {
+<<<<<<< HEAD
 	if (of_machine_is_compatible("rockchip,rk3588") <= 0)
 		return;
 
+=======
+>>>>>>> okpine-6.5
 	platform_device_unregister(cpufreq_pdev);
 	platform_driver_unregister(&rockchip_cpufreq_platdrv);
 }

@@ -1,0 +1,46 @@
+From: =?utf-8?q?Ond=C5=99ej_Jirman?= <megi@xff.cz>
+Date: Wed, 9 Feb 2022 21:14:58 +0100
+Subject: arm64: dts: rk3399-pinephone-pro: Magnetometer is AF8133J
+
+Magnetometer is neither ak09911 nor lis3mdl. Use the proper chip.
+
+Signed-off-by: Ondrej Jirman <megi@xff.cz>
+---
+ .../boot/dts/rockchip/rk3399-pinephone-pro.dts     | 23 +++++-----------------
+ 1 file changed, 5 insertions(+), 18 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+index 9f88149..8309794 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+@@ -947,25 +947,12 @@ accelerometer@68 {
+ 			"0", "0", "1";
+ 	};
+ 
+-	lis3mdl: magnetometer@1c {
+-		compatible = "st,lis3mdl-magn";
++	af8133j: compass@1c {
++		compatible = "voltafield,af8133j";
+ 		reg = <0x1c>;
+-		interrupt-parent = <&gpio1>;
+-		interrupts = <RK_PA1 IRQ_TYPE_LEVEL_LOW>;
+-		vdd-supply = <&vcc3v3_sys>;
+-		vddio-supply = <&vcc_1v8>;
+-		status = "disabled";
+-	};
+-
+-	// not populated currently
+-	ak09911: compass@c {
+-		compatible = "asahi-kasei,ak09911";
+-		reg = <0x0c>;
+-		interrupt-parent = <&gpio1>;
+-		interrupts = <RK_PA1 IRQ_TYPE_LEVEL_LOW>;
+-		vdd-supply = <&vcc_3v0>;
+-		vid-supply = <&vcc_1v8>;
+-		status = "disabled";
++		reset-gpios = <&gpio1 RK_PA1 GPIO_ACTIVE_LOW>;
++		avdd-supply = <&vcc_3v0>;
++		dvdd-supply = <&vcc_1v8>;
+ 	};
+ };
+ 

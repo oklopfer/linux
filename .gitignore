@@ -16,7 +16,6 @@
 *.bin
 *.bz2
 *.c.[012]*.*
-*.cover
 *.dt.yaml
 *.dtb
 *.dtbo
@@ -34,12 +33,10 @@
 *.lz4
 *.lzma
 *.lzo
-*.mbx
 *.mod
 *.mod.c
 *.o
 *.o.*
-*.patch
 *.rmeta
 *.rpm
 *.rsi
@@ -51,7 +48,6 @@
 *.symversions
 *.tab.[ch]
 *.tar
-*.usyms
 *.xz
 *.zst
 Module.symvers
@@ -81,11 +77,6 @@ modules.order
 /rpmbuild/
 
 #
-# Debian directory (make deb-pkg)
-#
-/debian/
-
-#
 # Snap directory (make snap-pkg)
 #
 /snap/
@@ -112,15 +103,10 @@ modules.order
 #
 /include/config/
 /include/generated/
-/include/ksym/
 /arch/*/include/generated/
 
 # stgit generated dirs
 patches-*
-
-# quilt's files
-patches
-series
 
 # ctags files
 tags
@@ -174,3 +160,5 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+.DS_Store

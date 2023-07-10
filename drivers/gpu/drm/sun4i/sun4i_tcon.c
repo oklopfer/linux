@@ -110,9 +110,11 @@ static void sun4i_tcon_channel_set_status(struct sun4i_tcon *tcon, int channel,
 
 	if (enabled) {
 		clk_prepare_enable(clk);
-		clk_rate_exclusive_get(clk);
+		if (!tcon->quirks->clk_kept_by_ccu)
+			clk_rate_exclusive_get(clk);
 	} else {
-		clk_rate_exclusive_put(clk);
+		if (!tcon->quirks->clk_kept_by_ccu)
+			clk_rate_exclusive_put(clk);
 		clk_disable_unprepare(clk);
 	}
 }
@@ -383,7 +385,6 @@ static void sun4i_tcon0_mode_set_cpu(struct sun4i_tcon *tcon,
 	u8 bpp = mipi_dsi_pixel_format_to_bpp(device->format);
 	u8 lanes = device->lanes;
 	u32 block_space, start_delay;
-	u32 tcon_div;
 
 	/*
 	 * dclk is required to run at 1/4 the DSI per-lane bit rate.
@@ -420,9 +421,7 @@ static void sun4i_tcon0_mode_set_cpu(struct sun4i_tcon *tcon,
 	 * The datasheet says that this should be set higher than 20 *
 	 * pixel cycle, but it's not clear what a pixel cycle is.
 	 */
-	regmap_read(tcon->regs, SUN4I_TCON0_DCLK_REG, &tcon_div);
-	tcon_div &= GENMASK(6, 0);
-	block_space = mode->htotal * bpp / (tcon_div * lanes);
+	block_space = mode->htotal * bpp / (SUN6I_DSI_TCON_DIV * lanes);
 	block_space -= mode->hdisplay + 40;
 
 	regmap_write(tcon->regs, SUN4I_TCON0_CPU_TRI0_REG,
@@ -1564,6 +1563,14 @@ static const struct sun4i_tcon_quirks sun8i_a33_quirks = {
 	.supports_lvds		= true,
 };
 
+static const struct sun4i_tcon_quirks sun50i_a64_lcd_quirks = {
+	.supports_lvds		= true,
+	.has_channel_0		= true,
+	.clk_kept_by_ccu	= true,
+	.dclk_min_div		= 1,
+	.setup_lvds_phy		= sun6i_tcon_setup_lvds_phy,
+};
+
 static const struct sun4i_tcon_quirks sun8i_a83t_lcd_quirks = {
 	.supports_lvds		= true,
 	.has_channel_0		= true,
@@ -1622,6 +1629,7 @@ const struct of_device_id sun4i_tcon_of_table[] = {
 	{ .compatible = "allwinner,sun9i-a80-tcon-tv", .data = &sun9i_a80_tcon_tv_quirks },
 	{ .compatible = "allwinner,sun20i-d1-tcon-lcd", .data = &sun20i_d1_lcd_quirks },
 	{ .compatible = "allwinner,sun20i-d1-tcon-tv", .data = &sun8i_r40_tv_quirks },
+	{ .compatible = "allwinner,sun50i-a64-tcon-lcd", .data = &sun50i_a64_lcd_quirks },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, sun4i_tcon_of_table);

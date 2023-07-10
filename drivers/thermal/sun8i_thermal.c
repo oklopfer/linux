@@ -367,6 +367,7 @@ static int sun8i_ths_resource_init(struct ths_device *tmdev)
 		tmdev->bus_clk = devm_clk_get_enabled(&pdev->dev, "bus");
 		if (IS_ERR(tmdev->bus_clk))
 			return PTR_ERR(tmdev->bus_clk);
+		}
 	}
 
 	if (tmdev->chip->has_mod_clk) {

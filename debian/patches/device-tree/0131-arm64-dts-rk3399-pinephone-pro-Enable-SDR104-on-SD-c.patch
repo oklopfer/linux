@@ -1,0 +1,23 @@
+From: Ondrej Jirman <megi@xff.cz>
+Date: Sat, 24 Sep 2022 22:00:25 +0200
+Subject: arm64: dts: rk3399-pinephone-pro: Enable SDR104 on SD card interface
+
+This should work fine now when the card supports it.
+
+Signed-off-by: Ondrej Jirman <megi@xff.cz>
+---
+ arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+index dfe8f4b..da344b0 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+@@ -1393,6 +1393,7 @@ &sdmmc {
+ 	pinctrl-0 = <&sdmmc_clk &sdmmc_cmd &sdmmc_cd &sdmmc_bus4>;
+ 	vmmc-supply = <&vcc3v3_sys>;
+ 	vqmmc-supply = <&vccio_sd>;
++	sd-uhs-sdr104;
+ 	status = "okay";
+ };
+ 

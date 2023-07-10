@@ -573,6 +573,8 @@ static void dw_mipi_dsi_set_mode(struct dw_mipi_dsi *dsi,
 {
 	u32 val;
 
+	dev_info(dsi->dev, "mode %d\n", (int)mode_flags);
+
 	dsi_write(dsi, DSI_PWR_UP, RESET);
 
 	if (mode_flags & MIPI_DSI_MODE_VIDEO) {
@@ -847,11 +849,21 @@ static void dw_mipi_dsi_clear_err(struct dw_mipi_dsi *dsi)
 	dsi_write(dsi, DSI_INT_MSK1, 0);
 }
 
-static void dw_mipi_dsi_bridge_post_atomic_disable(struct drm_bridge *bridge,
+static void dw_mipi_dsi_bridge_atomic_disable(struct drm_bridge *bridge,
+					      struct drm_bridge_state *old_bridge_state)
+{
+	struct dw_mipi_dsi *dsi = bridge_to_dsi(bridge);
+
+	dev_info(dsi->dev, "disable\n");
+}
+
+static void dw_mipi_dsi_bridge_atomic_post_disable(struct drm_bridge *bridge,
 						   struct drm_bridge_state *old_bridge_state)
 {
 	struct dw_mipi_dsi *dsi = bridge_to_dsi(bridge);
 	const struct dw_mipi_dsi_phy_ops *phy_ops = dsi->plat_data->phy_ops;
+	
+	dev_info(dsi->dev, "post_disable\n");
 
 	dev_info(dsi->dev, "post_disable\n");
 
@@ -891,7 +903,7 @@ static unsigned int dw_mipi_dsi_get_lanes(struct dw_mipi_dsi *dsi)
 	return dsi->lanes;
 }
 
-static void dw_mipi_dsi_mode_set(struct dw_mipi_dsi *dsi,
+static void dw_mipi_dsi_enable(struct dw_mipi_dsi *dsi,
 				 const struct drm_display_mode *adjusted_mode)
 {
 	const struct dw_mipi_dsi_phy_ops *phy_ops = dsi->plat_data->phy_ops;
@@ -1017,7 +1029,8 @@ static const struct drm_bridge_funcs dw_mipi_dsi_bridge_funcs = {
 	.atomic_reset		= drm_atomic_helper_bridge_reset,
 	.atomic_pre_enable	= dw_mipi_dsi_bridge_atomic_pre_enable,
 	.atomic_enable		= dw_mipi_dsi_bridge_atomic_enable,
-	.atomic_post_disable	= dw_mipi_dsi_bridge_post_atomic_disable,
+	.atomic_disable		= dw_mipi_dsi_bridge_atomic_disable,
+	.atomic_post_disable	= dw_mipi_dsi_bridge_atomic_post_disable,
 	.mode_set		= dw_mipi_dsi_bridge_mode_set,
 	.mode_valid		= dw_mipi_dsi_bridge_mode_valid,
 	.attach			= dw_mipi_dsi_bridge_attach,
