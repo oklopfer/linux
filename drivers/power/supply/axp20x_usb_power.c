@@ -892,9 +892,6 @@ static int axp20x_usb_power_probe(struct platform_device *pdev)
 
 static const struct of_device_id axp20x_usb_power_match[] = {
 	{
-		.compatible = "x-powers,axp192-usb-power-supply",
-		.data = &axp192_data,
-	}, {
 		.compatible = "x-powers,axp202-usb-power-supply",
 		.data = &axp202_data,
 	}, {
