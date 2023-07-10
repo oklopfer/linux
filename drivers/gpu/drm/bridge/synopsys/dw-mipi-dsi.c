@@ -865,8 +865,6 @@ static void dw_mipi_dsi_bridge_atomic_post_disable(struct drm_bridge *bridge,
 	
 	dev_info(dsi->dev, "post_disable\n");
 
-	dev_info(dsi->dev, "post_disable\n");
-
 	/*
 	 * Switch to command mode before panel-bridge post_disable &
 	 * panel unprepare.

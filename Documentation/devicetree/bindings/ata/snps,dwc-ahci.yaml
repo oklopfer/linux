@@ -13,7 +13,6 @@ description:
   This document defines device tree bindings for the generic Synopsys DWC
   implementation of the AHCI SATA controller.
 
-
 select:
   properties:
     compatible:
