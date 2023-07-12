@@ -116,7 +116,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&hp_det_l>;
 		simple-audio-card,format = "i2s";
-		simple-audio-card,name = "PineTab";
+		simple-audio-card,name = "PineTab2";
 		simple-audio-card,mclk-fs = <256>;
 
 		simple-audio-card,widgets =
@@ -261,9 +261,8 @@
 
 	vcc_wl: vcc_wl {
 		compatible = "regulator-fixed";
-		gpio = <&gpio0 RK_PA0 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_pwren_l>;
+		pinctrl-0 = <&wifi_pwren>;
 		regulator-name = "vcc_wl";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
@@ -791,7 +790,7 @@
 	};
 
 	fspi {
-		fspi_pins: fspi-pins {
+		fspi_dual_io_pins: fspi-dual-io-pins {
 			rockchip,pins =
 				/* fspi_clk */
 				<1 RK_PD0 1 &pcfg_pull_none>,
@@ -843,7 +842,7 @@
 			rockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		wifi_pwren_l: wifi-pwren-l {
+		wifi_pwren: wifi-pwren {
 			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
@@ -935,6 +934,9 @@
 };
 
 &sfc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&fspi_dual_io_pins>;
+	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
 
