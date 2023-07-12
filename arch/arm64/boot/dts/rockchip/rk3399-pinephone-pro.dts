@@ -440,7 +440,7 @@
 		clocks = <&rk818 1>;
 		clock-names = "ext_clock";
 		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_enable_h>;
+		pinctrl-0 = <&wifi_enable_h_pin>;
 		/*
 		 * Wait between power-on and SDIO access for CYP43455
 		 * POR circuit.
@@ -1235,8 +1235,8 @@
 		reg = <0>;
 		backlight = <&backlight>;
 		reset-gpios = <&gpio4 RK_PD1 GPIO_ACTIVE_LOW>;
-		vcc-supply = <&vcc2v8_lcd>; // 2v8
-		iovcc-supply = <&vcc1v8_lcd>; // 1v8
+		vcc-supply = <&vcc2v8_lcd>;
+		iovcc-supply = <&vcc1v8_lcd>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&display_rst_l>;
 
@@ -1286,6 +1286,20 @@
 	buttons {
 		pwrbtn_pin: pwrbtn-pin {
 			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	dsi {
+		display_rst_l: display-rst-l {
+			rockchip,pins = <4 RK_PD1 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+
+		display_pwren: display-pwren {
+			rockchip,pins = <3 RK_PA1 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+
+		display_pwren1: display-pwren1 {
+			rockchip,pins = <3 RK_PA5 RK_FUNC_GPIO &pcfg_pull_down>;
 		};
 	};
 
@@ -1377,35 +1391,8 @@
 	};
 
 	sdio-pwrseq {
-		wifi_enable_h: wifi-enable-h {
-
+		wifi_enable_h_pin: wifi-enable-h-pin {
 			rockchip,pins = <0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-
-	usb-typec {
-		vcc5v0_typec_en: vcc5v0_typec_en {
-			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-	};
-
-	dsi {
-		display_rst_l: display-rst-l {
-			rockchip,pins = <4 RK_PD1 RK_FUNC_GPIO &pcfg_pull_down>;
-		};
-
-		display_pwren: display-pwren {
-			rockchip,pins = <3 RK_PA1 RK_FUNC_GPIO &pcfg_pull_down>;
-		};
-
-		display_pwren1: display-pwren1 {
-			rockchip,pins = <3 RK_PA5 RK_FUNC_GPIO &pcfg_pull_down>;
-		};
-	};
-
-	stk3311 {
-		stk3311_int: stk3311-int {
-			rockchip,pins = <4 RK_PD3 RK_FUNC_GPIO &pcfg_input_pull_up>;
 		};
 	};
 
@@ -1422,19 +1409,32 @@
 			rockchip,pins = <0 RK_PB3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
-	
+
+	stk3311 {
+		stk3311_int: stk3311-int {
+			rockchip,pins = <4 RK_PD3 RK_FUNC_GPIO &pcfg_input_pull_up>;
+		};
+	};
+
+	usb-typec {
+		vcc5v0_typec_en: vcc5v0_typec_en {
+			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
 	wireless-bluetooth {
 		bt_wake_pin: bt-wake-pin {
 			rockchip,pins = <2 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
+
 		bt_host_wake_pin: bt-host-wake-pin {
 			rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
+
 		bt_reset_pin: bt-reset-pin {
 			rockchip,pins = <0 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
-
 };
 
 &sdio0 {
@@ -1470,7 +1470,6 @@
 	pinctrl-0 = <&sdmmc_clk &sdmmc_cmd &sdmmc_cd &sdmmc_bus4>;
 	vmmc-supply = <&vcc3v3_sys>;
 	vqmmc-supply = <&vccio_sd>;
-	sd-uhs-sdr104;
 	status = "okay";
 };
 
@@ -1605,7 +1604,8 @@
 
 &vopb {
 	status = "okay";
-	assigned-clocks = <&cru DCLK_VOP0_DIV>, <&cru DCLK_VOP0>, <&cru ACLK_VOP0>, <&cru HCLK_VOP0>;
+	assigned-clocks = <&cru DCLK_VOP0_DIV>, <&cru DCLK_VOP0>,
+			  <&cru ACLK_VOP0>, <&cru HCLK_VOP0>;
 	assigned-clock-rates = <0>, <0>, <400000000>, <100000000>;
 	assigned-clock-parents = <&cru PLL_GPLL>, <&cru DCLK_VOP0_DIV>;
 };
@@ -1616,7 +1616,8 @@
 
 &vopl {
 	status = "okay";
-	assigned-clocks = <&cru DCLK_VOP1_DIV>, <&cru DCLK_VOP1>, <&cru ACLK_VOP1>, <&cru HCLK_VOP1>;
+	assigned-clocks = <&cru DCLK_VOP1_DIV>, <&cru DCLK_VOP1>,
+			  <&cru ACLK_VOP1>, <&cru HCLK_VOP1>;
 	assigned-clock-rates = <0>, <0>, <400000000>, <100000000>;
 	assigned-clock-parents = <&cru PLL_GPLL>, <&cru DCLK_VOP1_DIV>;
 };
