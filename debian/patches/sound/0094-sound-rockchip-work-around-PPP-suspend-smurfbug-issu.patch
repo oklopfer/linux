@@ -1,0 +1,76 @@
+From: undef <gitlab@undef.tools>
+Date: Sat, 6 Aug 2022 04:40:47 +0000
+Subject: sound: rockchip: work around PPP suspend "smurfbug" issue
+
+developed-by: djhg2000
+---
+ sound/soc/rockchip/rockchip_i2s.c | 45 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+
+diff --git a/sound/soc/rockchip/rockchip_i2s.c b/sound/soc/rockchip/rockchip_i2s.c
+index a8758ad..c81ee6b 100644
+--- a/sound/soc/rockchip/rockchip_i2s.c
++++ b/sound/soc/rockchip/rockchip_i2s.c
+@@ -97,10 +97,23 @@ static int i2s_runtime_suspend(struct device *dev)
+ 	return 0;
+ }
+ 
++/*
++ * Code below is patched with the "smurfbug" workaround
++ * The basic idea is to force the hardware to reconfigure the clock on resume by
++ * saving the set clock to a temporary register, setting the hardware to another
++ * clock rate, then finally setting the clock back to the saved rate.
++ * We're still investigating why this works but neither forcing a register write
++ * nor forcing a clock rate makes any difference.
++*/
++
+ static int i2s_runtime_resume(struct device *dev)
+ {
+ 	struct rk_i2s_dev *i2s = dev_get_drvdata(dev);
+ 	int ret;
++	/* Smurfbug workaround */
++	int ret_smurfbug;
++	unsigned int ret_smurfbug_freq;
++	unsigned int ret_smurfbug_reg;
+ 
+ 	ret = clk_prepare_enable(i2s->mclk);
+ 	if (ret) {
+@@ -115,6 +128,38 @@ static int i2s_runtime_resume(struct device *dev)
+ 	if (ret)
+ 		clk_disable_unprepare(i2s->mclk);
+ 
++	/* Smurfbug workaround */
++	ret_smurfbug_freq = clk_get_rate(i2s->mclk);
++	if (ret_smurfbug_freq) {
++		dev_dbg(i2s->dev, "Resume freq %u\n", ret_smurfbug_freq);
++	} else {
++		dev_err(i2s->dev, "Fail to get mclk %d\n", ret_smurfbug);
++	}
++	ret_smurfbug = clk_set_rate(i2s->mclk, 800000);
++	if (!ret_smurfbug) {
++		dev_dbg(i2s->dev, "Set mclk to %d\n", 800000);
++	} else {
++		dev_err(i2s->dev, "Fail to set mclk %d\n", 800000);
++	}
++	ret_smurfbug = regmap_read(i2s->regmap, I2S_CKR, &ret_smurfbug_reg);
++	if (!ret_smurfbug) {
++		dev_dbg(i2s->dev, "Resume new I2S_CKR %x\n", ret_smurfbug_reg);
++	} else {
++		dev_err(i2s->dev, "Fail to get I2S_CKR %d\n", ret_smurfbug);
++	}
++	ret_smurfbug = clk_set_rate(i2s->mclk, ret_smurfbug_freq);
++	if (!ret_smurfbug) {
++		dev_dbg(i2s->dev, "Set mclk to %d\n", ret_smurfbug_freq);
++	} else {
++		dev_err(i2s->dev, "Fail to set mclk %d\n", ret_smurfbug_freq);
++	}
++	ret_smurfbug = regmap_read(i2s->regmap, I2S_CKR, &ret_smurfbug_reg);
++	if (!ret_smurfbug) {
++		dev_dbg(i2s->dev, "Resume new I2S_CKR %x\n", ret_smurfbug_reg);
++	} else {
++		dev_err(i2s->dev, "Fail to get I2S_CKR %d\n", ret_smurfbug);
++	}
++
+ 	return ret;
+ }
+ 

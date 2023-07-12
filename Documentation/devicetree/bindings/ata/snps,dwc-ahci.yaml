@@ -25,7 +25,6 @@ select:
 
 allOf:
   - $ref: snps,dwc-ahci-common.yaml#
-
 properties:
   compatible:
     oneOf:

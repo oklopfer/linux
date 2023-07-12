@@ -565,6 +565,12 @@ static int sun6i_dphy_probe(struct platform_device *pdev)
 	if (!dphy)
 		return -ENOMEM;
 
+	ret = of_property_read_u32_index(of_chosen, "p-boot,framebuffer-start", 0, &fb_start);
+	if (ret == 0) {
+		/* the display pipeline is already initialized by p-boot */
+		dphy->hw_preconfigured = true;
+	}
+    
 	dphy->variant = device_get_match_data(&pdev->dev);
 	if (!dphy->variant)
 		return -EINVAL;

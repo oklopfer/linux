@@ -571,7 +571,6 @@ enum {
 	AXP152_IRQ_PEK_SHORT,
 	AXP152_IRQ_PEK_LONG,
 	AXP152_IRQ_TIMER,
-	/* out of bit order to make sure the press event is handled first */
 	AXP152_IRQ_PEK_FAL_EDGE,
 	AXP152_IRQ_PEK_RIS_EDGE,
 	AXP152_IRQ_GPIO3_INPUT,
@@ -648,7 +647,6 @@ enum {
 	AXP20X_IRQ_LOW_PWR_LVL1,
 	AXP20X_IRQ_LOW_PWR_LVL2,
 	AXP20X_IRQ_TIMER,
-	/* out of bit order to make sure the press event is handled first */
 	AXP20X_IRQ_PEK_FAL_EDGE,
 	AXP20X_IRQ_PEK_RIS_EDGE,
 	AXP20X_IRQ_GPIO3_INPUT,
@@ -679,7 +677,6 @@ enum axp22x_irqs {
 	AXP22X_IRQ_LOW_PWR_LVL1,
 	AXP22X_IRQ_LOW_PWR_LVL2,
 	AXP22X_IRQ_TIMER,
-	/* out of bit order to make sure the press event is handled first */
 	AXP22X_IRQ_PEK_FAL_EDGE,
 	AXP22X_IRQ_PEK_RIS_EDGE,
 	AXP22X_IRQ_GPIO1_INPUT,
@@ -759,7 +756,6 @@ enum axp803_irqs {
 	AXP803_IRQ_LOW_PWR_LVL1,
 	AXP803_IRQ_LOW_PWR_LVL2,
 	AXP803_IRQ_TIMER,
-	/* out of bit order to make sure the press event is handled first */
 	AXP803_IRQ_PEK_FAL_EDGE,
 	AXP803_IRQ_PEK_RIS_EDGE,
 	AXP803_IRQ_PEK_SHORT,
@@ -812,7 +808,6 @@ enum axp809_irqs {
 	AXP809_IRQ_LOW_PWR_LVL1,
 	AXP809_IRQ_LOW_PWR_LVL2,
 	AXP809_IRQ_TIMER,
-	/* out of bit order to make sure the press event is handled first */
 	AXP809_IRQ_PEK_FAL_EDGE,
 	AXP809_IRQ_PEK_RIS_EDGE,
 	AXP809_IRQ_PEK_SHORT,

@@ -1,0 +1,5 @@
+linux-6.2-rockchip (6.2+rockchip-1) unstable; urgency=medium
+
+  * d/patches: rebase on 6.2
+
+ -- Undef <debian@undef.tools>  Mon, 20 Feb 2023 09:32:05 +0000

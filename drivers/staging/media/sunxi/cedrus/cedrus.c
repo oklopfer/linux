@@ -389,9 +389,13 @@ static int cedrus_open(struct file *file)
 
 	return 0;
 
+err_ctrls:
+	v4l2_ctrl_handler_free(&ctx->hdl);
+	kfree(ctx->ctrls);
 err_m2m_release:
 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
 err_free:
+	v4l2_fh_exit(&ctx->fh);
 	kfree(ctx);
 	mutex_unlock(&dev->dev_mutex);
 
