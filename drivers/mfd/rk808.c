@@ -870,7 +870,7 @@ static struct i2c_driver rk808_i2c_driver = {
 		.of_match_table = rk808_of_match,
 		.pm = &rk8xx_pm_ops,
 	},
-	.probe_new = rk808_probe,
+	.probe = rk808_probe,
 	.remove   = rk808_remove,
 	.shutdown = rk8xx_shutdown,
 };
