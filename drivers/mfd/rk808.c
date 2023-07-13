@@ -735,12 +735,18 @@ static int rk808_probe(struct i2c_client *client)
 
 	/* Read chip variant */
 	msb = i2c_smbus_read_byte_data(client, pmic_id_msb);
-	if (msb < 0)
-		return dev_err_probe(&client->dev, msb, "failed to read the chip id MSB\n");
+	if (msb < 0) {
+		dev_err(&client->dev, "failed to read the chip id at 0x%x\n",
+			RK808_ID_MSB);
+		return msb;
+	}
 
 	lsb = i2c_smbus_read_byte_data(client, pmic_id_lsb);
-	if (lsb < 0)
-		return dev_err_probe(&client->dev, lsb, "failed to read the chip id LSB\n");
+	if (lsb < 0) {
+		dev_err(&client->dev, "failed to read the chip id at 0x%x\n",
+			RK808_ID_LSB);
+		return lsb;
+	}
 
 	rk808->variant = ((msb << 8) | lsb) & RK8XX_ID_MSK;
 	dev_info(&client->dev, "chip id: 0x%x\n", (unsigned int)rk808->variant);
@@ -797,34 +803,44 @@ static int rk808_probe(struct i2c_client *client)
 	i2c_set_clientdata(client, rk808);
 
 	rk808->regmap = devm_regmap_init_i2c(client, rk808->regmap_cfg);
-	if (IS_ERR(rk808->regmap))
-		return dev_err_probe(&client->dev, PTR_ERR(rk808->regmap),
-				     "regmap initialization failed\n");
+	if (IS_ERR(rk808->regmap)) {
+		dev_err(&client->dev, "regmap initialization failed\n");
+		return PTR_ERR(rk808->regmap);
+	}
 
-	if (!client->irq)
-		return dev_err_probe(&client->dev, -EINVAL, "No interrupt support, no core IRQ\n");
+	if (!client->irq) {
+		dev_err(&client->dev, "No interrupt support, no core IRQ\n");
+		return -EINVAL;
+	}
 
 	ret = devm_regmap_add_irq_chip(&client->dev, rk808->regmap, client->irq,
 				       IRQF_ONESHOT, -1,
 				       rk808->regmap_irq_chip, &rk808->irq_data);
-	if (ret)
-		return dev_err_probe(&client->dev, ret, "Failed to add irq_chip\n");
+	if (ret) {
+		dev_err(&client->dev, "Failed to add irq_chip %d\n", ret);
+		return ret;
+	}
 
 	for (i = 0; i < nr_pre_init_regs; i++) {
 		ret = regmap_update_bits(rk808->regmap,
 					pre_init_reg[i].addr,
 					pre_init_reg[i].mask,
 					pre_init_reg[i].value);
-		if (ret)
-			return dev_err_probe(&client->dev, ret, "0x%x write err\n",
-					     pre_init_reg[i].addr);
+		if (ret) {
+			dev_err(&client->dev,
+				"0x%x write err\n",
+				pre_init_reg[i].addr);
+			return ret;
+		}
 	}
 
 	ret = devm_mfd_add_devices(&client->dev, PLATFORM_DEVID_NONE,
 			      cells, nr_cells, NULL, 0,
 			      regmap_irq_get_domain(rk808->irq_data));
-	if (ret)
-		return dev_err_probe(&client->dev, ret, "failed to add MFD devices\n");
+	if (ret) {
+		dev_err(&client->dev, "failed to add MFD devices %d\n", ret);
+		return ret;
+	}
 
 	if (of_property_read_bool(np, "rockchip,system-power-controller")) {
 		ret = devm_register_sys_off_handler(&client->dev,
