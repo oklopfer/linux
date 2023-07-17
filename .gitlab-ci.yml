@@ -1,4 +1,4 @@
-image: ubuntu:lunar
+image: ubuntu:develop
 variables:
   GIT_DEPTH: "1"
 
@@ -10,35 +10,13 @@ build_phone:
     KBUILD_DEBARCH: arm64
     LOCALVERSION: -okpine
   before_script:
-    - mkdir /lib/firmware && mv linux-firmware/* /lib/firmware
+    - if ! [[ -d /lib/firmware ]]; then mkdir /lib/firmware; fi
+    - cp -r linux-firmware/* /lib/firmware
     - apt-get update && apt-get install wget build-essential bison flex bc debhelper fakeroot rsync kmod cpio libncurses-dev libssl-dev libelf-dev gcc-aarch64-linux-gnu libc6-dev-arm64-cross gcc-arm-none-eabi libnewlib-arm-none-eabi -y
   script:
     - rm -f *.{deb,dsc,gz} || true
     - rm -f ../*.{deb,dsc,gz} || true
     - make unified_defconfig
-    - make -j$(nproc) bindeb-pkg
-    - cp ../*.deb .
-  artifacts:
-    paths:
-      - "*.deb"
-  cache:
-    paths:
-      - "*.o"
-
-build_tab:
-  when: manual
-  variables:
-    ARCH: arm64
-    CROSS_COMPILE: aarch64-linux-gnu-
-    KBUILD_DEBARCH: arm64
-    LOCALVERSION: -oktab
-  before_script:
-    - mkdir /lib/firmware && mv linux-firmware/* /lib/firmware
-    - apt-get update && apt-get install wget build-essential bison flex bc debhelper fakeroot rsync kmod cpio libncurses-dev libssl-dev libelf-dev gcc-aarch64-linux-gnu libc6-dev-arm64-cross gcc-arm-none-eabi libnewlib-arm-none-eabi -y
-  script:
-    - rm -f *.{deb,dsc,gz} || true
-    - rm -f ../*.{deb,dsc,gz} || true
-    - make tabtwo_defconfig
     - make -j$(nproc) bindeb-pkg
     - cp ../*.deb .
   artifacts:
