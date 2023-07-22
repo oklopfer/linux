@@ -135,7 +135,7 @@
 			"Speakers", "Speaker Amplifier OUTL",
 			"Speakers", "Speaker Amplifier OUTR";
 
-		simple-audio-card,hp-det-gpio = <&gpio4 RK_PC6 GPIO_ACTIVE_HIGH>;
+		simple-audio-card,hp-det-gpio = <&gpio4 RK_PC6 GPIO_ACTIVE_LOW>;
 		simple-audio-card,aux-devs = <&speaker_amp>;
 		simple-audio-card,pin-switches = "Speakers", "Microphone";
 
@@ -157,6 +157,16 @@
 		reset-gpios = <&gpio3 RK_PD2 GPIO_ACTIVE_LOW>;
 		post-power-on-delay-ms = <200>;
 	};
+	sdio_pwrkey: sdio-pwrkey {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&rk817 1>;
+		clock-names = "ext_clock";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_pwr_wake>;
+		reset-gpios = <&gpio3 RK_PD3 GPIO_ACTIVE_HIGH>;
+		post-power-on-delay-ms = <500>;
+	};
+
 
 	speaker_amp: speaker-amplifier {
 		compatible = "simple-audio-amplifier";
@@ -846,6 +856,10 @@
 			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
+		wifi_pwr_wake: wifi-pwr-wake{
+			rockchip,pins = <3 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
 		wifi_reg_on_h: wifi-reg-on-h {
 			rockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
@@ -921,7 +935,7 @@
 	cap-sd-highspeed;
 	cap-sdio-irq;
 	keep-power-in-suspend;
-	mmc-pwrseq = <&sdio_pwrseq>;
+	mmc-pwrseq = <&sdio_pwrseq &sdio_pwrkey>;
 	non-removable;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1_bus4
