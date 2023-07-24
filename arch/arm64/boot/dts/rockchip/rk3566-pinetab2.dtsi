@@ -185,7 +185,6 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc3v3_sys>;
-		enable-active-high;
 
 		regulator-state-mem {
 			regulator-off-in-suspend;
@@ -278,6 +277,7 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc3v3_sys>;
+		enable-active-high;
 
 		regulator-state-mem {
 			regulator-off-in-suspend;
