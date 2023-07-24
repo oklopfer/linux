@@ -1175,8 +1175,8 @@ void bes2600_skb_dtor(struct bes2600_common *hw_priv,
 		tx_policy_put(hw_priv, txpriv->rate_id);
 	}
 	if (likely(!bes2600_is_itp(hw_priv))) {
-		ieee80211_tx_status(hw_priv->hw, skb);
 		bes2600_tx_status(priv, skb);
+		ieee80211_tx_status(hw_priv->hw, skb);
 	}
 
 }
