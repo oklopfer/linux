@@ -1,0 +1,44 @@
+From: Jacopo Mondi <jacopo.mondi@ideasonboard.com>
+Date: Tue, 17 Jan 2023 11:06:03 +0100
+Subject: media: imx258: Remove mandatory 180 degrees rotation
+
+The "rotation" fwnode device property is intended to allow specify the
+sensor's physical mounting rotation, so that it can be exposed through
+the read-only V4L2_CID_CAMERA_SENSOR_ROTATION control and applications
+can decide how to compensate for that.
+
+The imx258 driver has read-only VFLIP and HFLIP enabled, resulting in
+a 180 degrees image rotation being produced by the sensor. But this
+doesn't imply that the physical mounting rotation should match the
+driver's implementation.
+
+Now that the driver registers V4L2_CID_CAMERA_SENSOR_ROTATION
+and V4L2_CID_HFLIP/VFLIP correctly, userspace has all the required
+information to handle the rotation correctly, hence it is not necessary
+to require the 'rotation' property to be fixed to 180 degrees in DTS.
+
+Signed-off-by: Jacopo Mondi <jacopo.mondi@ideasonboard.com>
+Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+---
+ drivers/media/i2c/imx258.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/drivers/media/i2c/imx258.c b/drivers/media/i2c/imx258.c
+index 2e0a4ea..85d73b1 100644
+--- a/drivers/media/i2c/imx258.c
++++ b/drivers/media/i2c/imx258.c
+@@ -1299,14 +1299,6 @@ static int imx258_probe(struct i2c_client *client)
+ 		return -EINVAL;
+ 	}
+ 
+-	/*
+-	 * Check that the device is mounted upside down. The driver only
+-	 * supports a single pixel order right now.
+-	 */
+-	ret = device_property_read_u32(&client->dev, "rotation", &val);
+-	if (ret || val != 180)
+-		return -EINVAL;
+-
+ 	/* Initialize subdev */
+ 	v4l2_i2c_subdev_init(&imx258->sd, client, &imx258_subdev_ops);
+ 

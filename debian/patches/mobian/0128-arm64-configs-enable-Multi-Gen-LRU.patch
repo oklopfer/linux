@@ -1,0 +1,24 @@
+From: undef <gitlab@undef.tools>
+Date: Wed, 15 Feb 2023 21:52:30 +0000
+Subject: arm64: configs: enable Multi-Gen LRU
+
+Multi-Gen LRU helps on RAM-constrained devices, reducing CPU load
+induced by paging and minimizing system thrashing. It appears to make
+a tangible difference on the Librem 5, so enable it by default.
+---
+ arch/arm64/configs/rockchip_defconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/configs/rockchip_defconfig b/arch/arm64/configs/rockchip_defconfig
+index 3ea019d..38d776d 100644
+--- a/arch/arm64/configs/rockchip_defconfig
++++ b/arch/arm64/configs/rockchip_defconfig
+@@ -161,6 +161,8 @@ CONFIG_CMA_SYSFS=y
+ CONFIG_CMA_AREAS=7
+ CONFIG_DEFERRED_STRUCT_PAGE_INIT=y
+ CONFIG_USERFAULTFD=y
++CONFIG_LRU_GEN=y
++CONFIG_LRU_GEN_ENABLED=y
+ CONFIG_NET=y
+ CONFIG_PACKET=y
+ CONFIG_PACKET_DIAG=m

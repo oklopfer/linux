@@ -44,9 +44,21 @@
 #include <dt-bindings/thermal/thermal.h>
 
 / {
+	aliases {
+		mmc0 = &mmc0;
+		mmc1 = &mmc1;
+		mmc2 = &mmc2;
+	};
+
 	cpu0_opp_table: opp-table-cpu {
 		compatible = "operating-points-v2";
 		opp-shared;
+
+		opp-480000000 {
+			opp-hz = /bits/ 64 <480000000>;
+			opp-microvolt = <1040000 1040000 1300000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
 
 		opp-648000000 {
 			opp-hz = /bits/ 64 <648000000>;
@@ -60,9 +72,39 @@
 			clock-latency-ns = <244144>; /* 8 32k periods */
 		};
 
+		opp-960000000 {
+			opp-hz = /bits/ 64 <960000000>;
+			opp-microvolt = <1200000 1200000 1300000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
 		opp-1008000000 {
 			opp-hz = /bits/ 64 <1008000000>;
 			opp-microvolt = <1200000 1200000 1300000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-1104000000 {
+			opp-hz = /bits/ 64 <1104000000>;
+			opp-microvolt = <1320000 1320000 1320000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-1200000000 {
+			opp-hz = /bits/ 64 <1200000000>;
+			opp-microvolt = <1320000 1320000 1320000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-1296000000 {
+			opp-hz = /bits/ 64 <1296000000>;
+			opp-microvolt = <1340000 1340000 1340000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-1368000000 {
+			opp-hz = /bits/ 64 <1368000000>;
+			opp-microvolt = <1400000 1400000 1400000>;
 			clock-latency-ns = <244144>; /* 8 32k periods */
 		};
 	};
@@ -169,6 +211,19 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 			ranges;
+
+			sram_a2: sram@40000 {
+				compatible = "mmio-sram";
+				reg = <0x00040000 0xc000>;
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges = <0 0x00040000 0xc000>;
+
+				scpi_sram: scp-shmem@bc00 {
+					compatible = "arm,scp-shmem";
+					reg = <0xbc00 0x200>;
+				};
+			};
 
 			sram_c: sram@1d00000 {
 				compatible = "mmio-sram";

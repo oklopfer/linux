@@ -1,0 +1,33 @@
+From: Ondrej Jirman <megi@xff.cz>
+Date: Fri, 27 May 2022 16:44:42 +0200
+Subject: arm64: dts: rk3399-pinephone-pro: Use 4-lane mode for selfie camera
+
+It works, enable it.
+
+Signed-off-by: Ondrej Jirman <megi@xff.cz>
+---
+ arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+index 632c37d..b8be1d1 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+@@ -926,7 +926,7 @@ ucam: camera@36 {
+ 		port {
+ 			ucam_out: endpoint {
+ 				remote-endpoint = <&mipi_in_ucam>;
+-				data-lanes = <1 2>;
++				data-lanes = <1 2 3 4>;
+ 			};
+ 		};
+ 	};
+@@ -1144,7 +1144,7 @@ port@0 {
+ 			mipi_in_ucam: endpoint@0 {
+ 				reg = <0>;
+ 				remote-endpoint = <&ucam_out>;
+-				data-lanes = <1 2>;
++				data-lanes = <1 2 3 4>;
+ 			};
+ 		};
+ 	};

@@ -3392,8 +3392,10 @@ struct rtw89_fw_suit {
 			  le32_get_bits((fw_hdr)->w1, FW_HDR_W1_SUBVERSION),	\
 			  le32_get_bits((fw_hdr)->w1, FW_HDR_W1_SUBINDEX))
 
-struct rtw89_fw_req_info {
-	const struct firmware *firmware;
+struct rtw89_fw_info {
+	const void *firmware;
+	size_t firmware_size;
+	struct rtw89_dev *rtwdev;
 	struct completion completion;
 };
 

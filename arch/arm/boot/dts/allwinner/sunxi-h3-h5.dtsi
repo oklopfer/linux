@@ -100,10 +100,31 @@
 		};
 	};
 
+	sound_hdmi: sound_hdmi {
+		compatible = "allwinner,sun9i-a80-hdmi-audio",
+			     "allwinner,sun8i-h3-hdmi-audio";
+		status = "disabled";
+
+		codec {
+			sound-dai = <&hdmi>;
+		};
+
+		cpu {
+			sound-dai = <&i2s2>;
+		};
+	};
+
 	de: display-engine {
 		compatible = "allwinner,sun8i-h3-display-engine";
 		allwinner,pipelines = <&mixer0>;
 		status = "disabled";
+	};
+
+	scpi_protocol: scpi {
+		compatible = "arm,scpi";
+		mboxes = <&msgbox 2>, <&msgbox 3>;
+		mbox-names = "tx", "rx";
+		shmem = <&scpi_sram>;
 	};
 
 	soc {
@@ -393,6 +414,7 @@
 			reg = <0x01c20000 0x400>;
 			clocks = <&osc24M>, <&rtc CLK_OSC32K>;
 			clock-names = "hosc", "losc";
+			protected-clocks = <CLK_BUS_MSGBOX>;
 			#clock-cells = <1>;
 			#reset-cells = <1>;
 		};
@@ -818,6 +840,7 @@
 		};
 
 		hdmi: hdmi@1ee0000 {
+			#sound-dai-cells = <0>;
 			compatible = "allwinner,sun8i-h3-dw-hdmi",
 				     "allwinner,sun8i-a83t-dw-hdmi";
 			reg = <0x01ee0000 0x10000>;
@@ -887,6 +910,7 @@
 			clocks = <&osc24M>, <&rtc CLK_OSC32K>, <&rtc CLK_IOSC>,
 				 <&ccu CLK_PLL_PERIPH0>;
 			clock-names = "hosc", "losc", "iosc", "pll-periph";
+			protected-clocks = <CLK_APB0_TWD>;
 			#clock-cells = <1>;
 			#reset-cells = <1>;
 		};
