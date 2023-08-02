@@ -134,7 +134,7 @@ static int wsm_generic_confirm(struct bes2600_common *hw_priv,
 				 struct wsm_buf *buf)
 {
 	u32 status = WSM_GET32(buf);
-	if (WARN(status != WSM_STATUS_SUCCESS, "wsm_generic_confirm ret %u", status))
+	if (WARN(status != WSM_STATUS_SUCCESS, "%s ret %u", status))
 		return -EINVAL;
 	return 0;
 
