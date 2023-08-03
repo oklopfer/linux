@@ -13,7 +13,6 @@
 	chassis-type = "tablet";
 
 	aliases {
-		ethernet0 = &bes2600;
 		mmc0 = &sdmmc0;
 		mmc1 = &sdhci;
 	};
@@ -153,8 +152,21 @@
 		compatible = "mmc-pwrseq-simple";
 		clocks = <&rk817 1>;
 		clock-names = "ext_clock";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_reset>;
+		reset-gpios = <&gpio3 RK_PD2 GPIO_ACTIVE_LOW>;
 		post-power-on-delay-ms = <200>;
 	};
+	sdio_pwrkey: sdio-pwrkey {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&rk817 1>;
+		clock-names = "ext_clock";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_pwr_wake>;
+		reset-gpios = <&gpio3 RK_PD3 GPIO_ACTIVE_HIGH>;
+		post-power-on-delay-ms = <500>;
+	};
+
 
 	speaker_amp: speaker-amplifier {
 		compatible = "simple-audio-amplifier";
@@ -173,6 +185,10 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc3v3_sys>;
+
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
 	};
 
 	vcc3v3_minipcie: vcc3v3_minipcie {
@@ -185,6 +201,10 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc_sys>;
+
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
 	};
 
 	vcc3v3_sd: vcc3v3_sd {
@@ -196,6 +216,10 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc3v3_sys>;
+
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
 	};
 
 	vcc5v0_usb_host0: vcc5v0_usb_host0 {
@@ -208,6 +232,10 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		vin-supply = <&vcc5v_midu>;
+
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
 	};
 
 	vcc5v0_usb_host2: vcc5v0_usb_host2 {
@@ -220,6 +248,10 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		vin-supply = <&vcc5v_midu>;
+
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
 	};
 
 	vcc_bat: vcc_bat {
@@ -237,37 +269,19 @@
 		vin-supply = <&vcc_bat>;
 	};
 
-	w_vbat: w-vbat-regulator {
+	vcc_wl: vcc_wl {
 		compatible = "regulator-fixed";
-		enable-active-high;
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_pwren>;
-		regulator-name = "w_vbat";
+		regulator-name = "vcc_wl";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		vin-supply = <&vcc_sys>;
-	};
-
-	wl_reg: wl-regulator {
-		compatible = "regulator-fixed";
+		vin-supply = <&vcc3v3_sys>;
 		enable-active-high;
-		gpio = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_reg_on_h>;
-		regulator-name = "wl_reg";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		vin-supply = <&w_vbat>;
-	};
 
-	wl_reg2: wl2-regulator {
-		compatible = "regulator-fixed";
-		enable-active-high;
-		gpio = <&gpio3 RK_PD3 GPIO_ACTIVE_HIGH>;
-		regulator-name = "wl_reg2";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		vin-supply = <&wl_reg>;
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
 	};
 
 	vdd1v2_dvp: vdd1v2_dvp {
@@ -843,16 +857,16 @@
 			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
+		wifi_pwr_wake: wifi-pwr-wake{
+			rockchip,pins = <3 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
 		wifi_reg_on_h: wifi-reg-on-h {
 			rockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		wifi_reset: wifi-reset {
 			rockchip,pins = <3 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
-		wifi_pwrkey: wifi-pwrkey {
-			rockchip,pins = <3 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		wifi_wake_host_h: wifi-wake-host-h {
@@ -922,23 +936,16 @@
 	cap-sd-highspeed;
 	cap-sdio-irq;
 	keep-power-in-suspend;
-	mmc-pwrseq = <&sdio_pwrseq>;
+	mmc-pwrseq = <&sdio_pwrseq &sdio_pwrkey>;
 	non-removable;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1_bus4
 		     &sdmmc1_cmd
 		     &sdmmc1_clk>;
 	sd-uhs-sdr104;
-	vmmc-supply = <&wl_reg2>;
+	vmmc-supply = <&vcc_wl>;
 	vqmmc-supply = <&vcca1v8_pmu>;
 	status = "okay";
-	
-	bes2600: wifi {
-		compatible = "bestechnic,bes2600";
-
-		device-wakeup-gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>; // wifi chip wakeup
-		host-wakeup-gpios = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>; // host wakeup
-	};
 };
 
 &sfc {
