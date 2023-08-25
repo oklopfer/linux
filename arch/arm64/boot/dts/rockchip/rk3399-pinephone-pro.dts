@@ -53,19 +53,19 @@
 	};
 
 	bat: battery {
-                compatible = "simple-battery";
-                voltage-min-design-microvolt = <3400000>;
-                voltage-max-design-microvolt = <4350000>;
-                energy-full-design-microwatt-hours = <11400000>;
-                charge-full-design-microamp-hours = <3000000>;
-                precharge-current-microamp = <120000>;
-                charge-term-current-microamp = <150000>;
-                constant-charge-current-max-microamp = <1500000>;
-                constant-charge-voltage-max-microvolt = <4350000>;
-                factory-internal-resistance-micro-ohms = <150000>;
-                resistance-temp-table = <20 150>;
-                ocv-capacity-celsius = <20>;
-                ocv-capacity-table-0 =
+		compatible = "simple-battery";
+		voltage-min-design-microvolt = <3400000>;
+		voltage-max-design-microvolt = <4350000>;
+		energy-full-design-microwatt-hours = <11400000>;
+		charge-full-design-microamp-hours = <3000000>;
+		precharge-current-microamp = <120000>;
+		charge-term-current-microamp = <150000>;
+		constant-charge-current-max-microamp = <1500000>;
+		constant-charge-voltage-max-microvolt = <4350000>;
+		factory-internal-resistance-micro-ohms = <150000>;
+		resistance-temp-table = <20 150>;
+		ocv-capacity-celsius = <20>;
+		ocv-capacity-table-0 =
 			<4308000 100>,
 			<4217000 95>,
 			<4161000 90>,
@@ -87,21 +87,21 @@
 			<3689000 10>,
 			<3675000 5>,
 			<3400000 0>;
-        };
+	};
 
-        ppkb_battery: keyboard-battery {
-                compatible = "simple-battery";
-                voltage-min-design-microvolt = <3000000>;
-                voltage-max-design-microvolt = <4200000>;
-                energy-full-design-microwatt-hours = <21000000>;
-                charge-full-design-microamp-hours = <6000000>;
-                precharge-current-microamp = <100000>;
-                charge-term-current-microamp = <50000>;
-                constant-charge-current-max-microamp = <2000000>;
-                constant-charge-voltage-max-microvolt = <4200000>;
-                factory-internal-resistance-micro-ohms = <120000>;
-                ocv-capacity-celsius = <20>;
-                ocv-capacity-table-0 =
+	ppkb_battery: keyboard-battery {
+		compatible = "simple-battery";
+		voltage-min-design-microvolt = <3000000>;
+		voltage-max-design-microvolt = <4200000>;
+		energy-full-design-microwatt-hours = <21000000>;
+		charge-full-design-microamp-hours = <6000000>;
+		precharge-current-microamp = <100000>;
+		charge-term-current-microamp = <50000>;
+		constant-charge-current-max-microamp = <2000000>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+		factory-internal-resistance-micro-ohms = <120000>;
+		ocv-capacity-celsius = <20>;
+		ocv-capacity-table-0 =
 			<4147328 100>,
 			<4132636 99>,
 			<4121720 98>,
@@ -203,7 +203,7 @@
 			<3337780 2>,
 			<3183953 1>,
 			<3064061 0>;
-        };
+	};
 
 	backlight: backlight {
 		compatible = "pwm-backlight";
@@ -252,6 +252,21 @@
 			gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
 			label = "Power";
 			linux,code = <KEY_POWER>;
+			wakeup-source;
+		};
+	};
+
+	gpio-key-ri {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ri_pin>;
+
+		ring_indicator: ring-indicator {
+			label = "ring-indicator";
+			linux,can-disable;
+			linux,code = <KEY_WAKEUP>;
+			gpios = <&gpio0 RK_PA1 GPIO_ACTIVE_LOW>;
+			wakeup-event-action = <EV_ACT_ASSERTED>;
 			wakeup-source;
 		};
 	};
@@ -407,6 +422,7 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		vin-supply = <&vcc5v0_sys>;
+		regulator-always-on;
 	};
 
 	vcc_4g: vcc-4g {
@@ -419,6 +435,7 @@
 		regulator-min-microvolt = <3800000>;
 		regulator-max-microvolt = <3800000>;
 		vin-supply = <&vcc_sys>;
+		regulator-always-on;
 	};
 
 	vcc1v8_codec: vcc1v8-codec-regulator {
@@ -819,60 +836,6 @@
 	};
 };
 
-&i2c3 {
-	i2c-scl-rising-time-ns = <450>;
-	i2c-scl-falling-time-ns = <15>;
-	status = "okay";
-
-	touchscreen@14 {
-		compatible = "goodix,gt1158";
-		reg = <0x14>;
-		interrupt-parent = <&gpio3>;
-		interrupts = <RK_PB5 IRQ_TYPE_EDGE_RISING>;
-		irq-gpios = <&gpio3 RK_PB5 GPIO_ACTIVE_HIGH>;
-		reset-gpios = <&gpio3 RK_PB4 GPIO_ACTIVE_HIGH>;
-		AVDD28-supply = <&vcc3v0_touch>;
-		VDDIO-supply = <&vcc3v0_touch>;
-		touchscreen-size-x = <720>;
-		touchscreen-size-y = <1440>;
-		use-dt-irq-flags;
-		poweroff-in-suspend;
-	};
-
-	light-sensor@48 {
-		compatible = "sensortek,stk3311";
-		reg = <0x48>;
-		interrupt-parent = <&gpio4>;
-		interrupts = <RK_PD3 IRQ_TYPE_EDGE_FALLING>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&stk3311_int>;
-		vdd-supply = <&vcc_3v0>;
-		leda-supply = <&vcc_3v0>;
-		i2c-supply = <&vcc3v0_touch>;
-	};
-};
-
-&cluster0_opp {
-	opp04 {
-		status = "disabled";
-	};
-
-	opp05 {
-		status = "disabled";
-	};
-};
-
-&cluster1_opp {
-	opp06 {
-		opp-hz = /bits/ 64 <1500000000>;
-		opp-microvolt = <1100000 1100000 1150000>;
-	};
-
-	opp07 {
-		status = "disabled";
-	};
-};
-
 /*
  * Cameras:
  *
@@ -905,7 +868,7 @@
 
 	assigned-clocks = <&cru SCLK_CIF_OUT &cru SCLK_CIF_OUT_SRC>;
 	assigned-clock-parents = <&cru SCLK_CIF_OUT_SRC &cru PLL_GPLL>;
-	assigned-clock-rates = <19200000 0>;
+	assigned-clock-rates = <24000000 0>;
 
 	wcam: camera@1a {
 		compatible = "sony,imx258";
@@ -994,6 +957,39 @@
 		realtek,in3-differential;
 		realtek,lout-differential;
 		#sound-dai-cells = <0>;
+	};
+};
+
+&i2c3 {
+	i2c-scl-rising-time-ns = <450>;
+	i2c-scl-falling-time-ns = <15>;
+	status = "okay";
+
+	touchscreen@14 {
+		compatible = "goodix,gt1158";
+		reg = <0x14>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PB5 IRQ_TYPE_EDGE_RISING>;
+		use-dt-irq-flags;
+		irq-gpios = <&gpio3 RK_PB5 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio3 RK_PB4 GPIO_ACTIVE_HIGH>;
+		AVDD28-supply = <&vcc3v0_touch>;
+		VDDIO-supply = <&vcc3v0_touch>;
+		touchscreen-size-x = <720>;
+		touchscreen-size-y = <1440>;
+		poweroff-in-suspend;
+	};
+
+	light-sensor@48 {
+		compatible = "sensortek,stk3311";
+		reg = <0x48>;
+		interrupt-parent = <&gpio4>;
+		interrupts = <RK_PD3 IRQ_TYPE_EDGE_FALLING>;
+		proximity-near-level = <80>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&stk3311_int>;
+		vdd-supply = <&vcc_3v0>;
+		leda-supply = <&vcc_3v0>;
 	};
 };
 
@@ -1129,6 +1125,27 @@
 	status = "okay";
 };
 
+&cluster0_opp {
+	opp04 {
+		status = "disabled";
+	};
+
+	opp05 {
+		status = "disabled";
+	};
+};
+
+&cluster1_opp {
+	opp06 {
+		opp-hz = /bits/ 64 <1500000000>;
+		opp-microvolt = <1100000 1100000 1150000>;
+	};
+
+	opp07 {
+		status = "disabled";
+	};
+};
+
 &io_domains {
 	bt656-supply = <&vcc1v8_dvp>;
 	audio-supply = <&vcca1v8_codec>;
@@ -1217,31 +1234,6 @@
 
 &uart3 {
 	status = "okay";
-
-	modem {
-		compatible = "quectel,eg25";
-		char-device-name = "modem-power";
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&modem_control_pins>;
-
-		power-supply = <&vcc_4g>;
-		vbus-supply = <&vcc_4g_5v>;
-
-		enable-gpios = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>; // W_DISABLE#
-		reset-gpios = <&gpio3 RK_PB0 GPIO_ACTIVE_HIGH>;
-		status-gpios = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
-		pwrkey-gpios = <&gpio0 RK_PB5 GPIO_ACTIVE_HIGH>;
-
-		host-ready-gpios = <&gpio0 RK_PB4 GPIO_ACTIVE_HIGH>; // apready
-		wakeup-gpios = <&gpio0 RK_PA1 GPIO_ACTIVE_HIGH>; // ri
-
-		dtr-gpios = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
-		cts-gpios = <&gpio3 RK_PC0 GPIO_ACTIVE_HIGH>;
-		rts-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
-
-		quectel,qdai = "3,0,0,4,0,0,1,1";
-	};
 };
 
 &pmu_io_domains {
@@ -1253,20 +1245,6 @@
 	buttons {
 		pwrbtn_pin: pwrbtn-pin {
 			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-	};
-
-	dsi {
-		display_rst_l: display-rst-l {
-			rockchip,pins = <4 RK_PD1 RK_FUNC_GPIO &pcfg_pull_down>;
-		};
-
-		display_pwren: display-pwren {
-			rockchip,pins = <3 RK_PA1 RK_FUNC_GPIO &pcfg_pull_down>;
-		};
-
-		display_pwren1: display-pwren1 {
-			rockchip,pins = <3 RK_PA5 RK_FUNC_GPIO &pcfg_pull_down>;
 		};
 	};
 
@@ -1315,25 +1293,16 @@
 	};
 
 	modem {
+		ri_pin: ri-pin {
+			rockchip,pins = <0 RK_PA1 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+
 		vcc_4g_5v_en: vcc-4g-5v-en-pin {
 			rockchip,pins = <1 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		vcc_4g_en: vcc-4g-en-pin {
 			rockchip,pins = <4 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
-		modem_control_pins: modem-control-pins {
-			rockchip,pins =
-				<0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>,
-				<3 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>,
-				<3 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>,
-				<0 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>,
-				<0 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>,
-				<0 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>,
-				<0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>,
-				<3 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>,
-				<3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
@@ -1363,6 +1332,32 @@
 		};
 	};
 
+	sdcard {
+		sdmmc0_pwr_h: sdmmc0-pwr-h {
+			rockchip,pins = <0 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	usb-typec {
+		vcc5v0_typec_en: vcc5v0_typec_en {
+			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	dsi {
+		display_rst_l: display-rst-l {
+			rockchip,pins = <4 RK_PD1 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+
+		display_pwren: display-pwren {
+			rockchip,pins = <3 RK_PA1 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+
+		display_pwren1: display-pwren1 {
+			rockchip,pins = <3 RK_PA5 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+	};
+
 	sound {
 		vcc1v8_codec_en: vcc1v8-codec-en {
 			rockchip,pins = <3 RK_PA4 RK_FUNC_GPIO &pcfg_pull_down>;
@@ -1377,18 +1372,6 @@
 		};
 	};
 
-	stk3311 {
-		stk3311_int: stk3311-int {
-			rockchip,pins = <4 RK_PD3 RK_FUNC_GPIO &pcfg_input_pull_up>;
-		};
-	};
-
-	usb-typec {
-		vcc5v0_typec_en: vcc5v0_typec_en {
-			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-	};
-
 	wireless-bluetooth {
 		bt_wake_pin: bt-wake-pin {
 			rockchip,pins = <2 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -1400,6 +1383,12 @@
 
 		bt_reset_pin: bt-reset-pin {
 			rockchip,pins = <0 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	lights {
+		stk3311_int: stk3311-int {
+			rockchip,pins = <4 RK_PD3 RK_FUNC_GPIO &pcfg_input_pull_up>;
 		};
 	};
 };
@@ -1422,6 +1411,10 @@
 	status = "okay";
 };
 
+&pwm2 {
+	status = "okay";
+};
+
 &saradc {
 	vref-supply = <&vcca1v8_s3>;
 	status = "okay";
@@ -1437,6 +1430,7 @@
 	pinctrl-0 = <&sdmmc_clk &sdmmc_cmd &sdmmc_cd &sdmmc_bus4>;
 	vmmc-supply = <&vcc3v3_sys>;
 	vqmmc-supply = <&vccio_sd>;
+	sd-uhs-sdr104;
 	status = "okay";
 };
 
