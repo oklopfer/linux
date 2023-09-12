@@ -350,19 +350,6 @@ static int ppkb_probe(struct i2c_client *client)
 		return error;
 	}
 
-	error = regulator_enable(vbat_supply);
-	if (error) {
-		dev_err(dev, "Failed to enable VBAT: %d\n", error);
-		return error;
-	}
-
-	error = devm_add_action_or_reset(dev, ppkb_regulator_disable,
-					 vbat_supply);
-	if (error)
-		return error;
-
-	mdelay(100);
-
 	ret = i2c_smbus_read_i2c_block_data(client, 0, sizeof(info), info);
 	if (ret != sizeof(info)) {
 		error = ret < 0 ? ret : -EIO;
