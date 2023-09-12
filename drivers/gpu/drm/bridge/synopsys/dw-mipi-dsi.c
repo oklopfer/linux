@@ -13,7 +13,7 @@
 #include <linux/debugfs.h>
 #include <linux/iopoll.h>
 #include <linux/module.h>
-#include <linux/of_device.h>
+#include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
 
@@ -942,8 +942,6 @@ static void dw_mipi_dsi_bridge_atomic_pre_enable(struct drm_bridge *bridge,
 {
 	struct dw_mipi_dsi *dsi = bridge_to_dsi(bridge);
 
-	dev_info(dsi->dev, "pre_enable\n");
-
 	/* Power up the dsi ctl into a command mode */
 	dw_mipi_dsi_mode_set(dsi, &dsi->mode);
 	if (dsi->slave)
@@ -955,8 +953,6 @@ static void dw_mipi_dsi_bridge_mode_set(struct drm_bridge *bridge,
 					const struct drm_display_mode *adjusted_mode)
 {
 	struct dw_mipi_dsi *dsi = bridge_to_dsi(bridge);
-
-	dev_info(dsi->dev, "mode_set\n");
 
 	/* Store the display mode for later use in pre_enable callback */
 	drm_mode_copy(&dsi->mode, adjusted_mode);

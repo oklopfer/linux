@@ -334,24 +334,17 @@ static void ppkb_close(struct input_dev *input)
 	ppkb_set_scan(client, false);
 }
 
-static void ppkb_regulator_disable(void *regulator)
-{
-	regulator_disable(regulator);
-}
-
 static int ppkb_probe(struct i2c_client *client)
 {
 	struct device *dev = &client->dev;
 	unsigned int phys_rows, phys_cols;
 	struct pinephone_keyboard *ppkb;
-	struct regulator *vbat_supply;
 	u8 info[PPKB_MATRIX_SIZE + 1];
 	struct device_node *i2c_bus;
 	int ret;
 	int error;
 
-	vbat_supply = devm_regulator_get(dev, "vbat");
-	error = PTR_ERR_OR_ZERO(vbat_supply);
+	error = devm_regulator_get_enable(dev, "vbat");
 	if (error) {
 		dev_err(dev, "Failed to get VBAT supply: %d\n", error);
 		return error;
