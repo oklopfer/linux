@@ -1,0 +1,9 @@
+[DEFAULT]
+debian-branch = mobian-@KVER@
+debian-tag = mobian/%(version)s
+upstream-tag = upstream/%(version)s
+upstream-branch = linux-@KVER@.y
+upstream-vcs-tag = v%(version)s
+
+[tag]
+sign-tags = true

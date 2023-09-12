@@ -1,0 +1,32 @@
+From: Ondrej Jirman <megi@xff.cz>
+Date: Tue, 22 Mar 2022 01:02:14 +0100
+Subject: arm64: dts: rk3399-pinephone-pro: Fix Alt-DP VDO pin assignements
+
+Since Pinephone has a DFP_D supporting receptacle, we need to set
+DFP_D pin assignments via bits 15:8 and not via bits 23:16 which
+are for UFP_D.
+
+Previous VDO worked, because displayport.c driver was broken. With
+the driver fixed, proper VDO can be used and docks with Type-C
+receptacles will work with Pinephone Pro.
+
+See also: https://xnux.eu/log/#063
+
+Signed-off-by: Ondrej Jirman <megi@xff.cz>
+---
+ arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+index ea49a37..1ca8b5f 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+@@ -1012,7 +1012,7 @@ connector {
+ 			altmodes {
+ 				dp {
+ 					svid = <0xff01>;
+-					vdo = <0x0c0046>;
++					vdo = <0x0c46>;
+ 				};
+ 			};
+ 

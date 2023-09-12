@@ -1,0 +1,35 @@
+From: Ondrej Jirman <megous@megous.com>
+Date: Mon, 18 Oct 2021 03:58:56 +0200
+Subject: arm64: dts: rk3399-pinephone-pro: Power off goodix touchscreen in
+ sleep
+
+Otherwise it consumes 200mW of power when touched during system sleep.
+It can't wake up the phone anyway.
+
+Signed-off-by: Ondrej Jirman <megous@megous.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+index 5a37faf..963ea2e 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+@@ -360,6 +360,9 @@ vcc3v0_touch: LDO_REG2 {
+ 				regulator-name = "vcc3v0_touch";
+ 				regulator-min-microvolt = <3000000>;
+ 				regulator-max-microvolt = <3000000>;
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
+ 			};
+ 
+ 			vcca1v8_codec: LDO_REG3 {
+@@ -561,6 +564,7 @@ touchscreen@14 {
+ 		VDDIO-supply = <&vcc3v0_touch>;
+ 		touchscreen-size-x = <720>;
+ 		touchscreen-size-y = <1440>;
++		poweroff-in-suspend;
+ 	};
+ 
+ 	light-sensor@48 {

@@ -1,0 +1,49 @@
+From: Ondrej Jirman <megi@xff.cz>
+Date: Fri, 8 Apr 2022 22:09:38 +0200
+Subject: arm64: dts: rk3399-pinephone-pro: Use newer DT bindings for keyboard
+
+---
+ arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts | 18 ++++++++++++++----
+ 1 file changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+index f945d89..632c37d 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-pinephone-pro.dts
+@@ -95,7 +95,7 @@ bat: battery {
+ 			<3400000 0>;
+ 	};
+ 
+-	kb151_bat: kb151-battery {
++	ppkb_battery: keyboard-battery {
+ 		compatible = "simple-battery";
+ 		voltage-min-design-microvolt = <3000000>;
+ 		voltage-max-design-microvolt = <4200000>;
+@@ -1082,14 +1082,24 @@ &i2c5 {
+ 	pinctrl-0 = <&i2c5_xfer &pogo_int_pin>;
+ 	status = "okay";
+ 
+-	keyboard@15 {
+-		compatible = "pine64,kb151";
++	ppkb: keyboard@15 {
++		compatible = "pine64,pinephone-keyboard";
+ 		reg = <0x15>;
+ 		interrupt-parent = <&gpio3>;
+ 		interrupts = <RK_PA0 IRQ_TYPE_EDGE_FALLING>;
+ 		vbat-supply = <&vcc5v0_sys>;
+ 		wakeup-source;
+-		monitored-battery = <&kb151_bat>;
++
++		i2c {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			charger@75 {
++				compatible = "injoinic,ip5209";
++				reg = <0x75>;
++				monitored-battery = <&ppkb_battery>;
++			};
++		};
+ 	};
+ };
+ 

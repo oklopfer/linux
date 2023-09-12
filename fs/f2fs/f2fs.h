@@ -350,11 +350,19 @@ struct discard_info {
 	block_t lstart;			/* logical start address */
 	block_t len;			/* length */
 	block_t start;			/* actual start address in dev */
-};
+} __packed;
 
 struct discard_cmd {
 	struct rb_node rb_node;		/* rb node located in rb-tree */
-	struct discard_info di;		/* discard info */
+	union {
+		struct {
+			block_t lstart;	/* logical start address */
+			block_t len;	/* length */
+			block_t start;	/* actual start address in dev */
+		};
+		struct discard_info di;	/* discard info */
+
+	} __packed;
 	struct list_head list;		/* command list */
 	struct completion wait;		/* compleation */
 	struct block_device *bdev;	/* bdev */
@@ -642,7 +650,7 @@ struct extent_info {
 			unsigned long long last_blocks;
 		};
 	};
-};
+} __packed;
 
 struct extent_node {
 	struct rb_node rb_node;		/* rb node located in rb-tree */
