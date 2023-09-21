@@ -4,8 +4,8 @@ include /usr/share/dpkg/pkg-info.mk
 
 srctree ?= .
 
-KVER=6.2
-KVENDOR=rockchip
+KVER=6.5
+KVENDOR=okpine
 KREL=$(KVER)-$(KVENDOR)
 
 BUILD=$(MAKE) KERNELRELEASE=$(KREL)

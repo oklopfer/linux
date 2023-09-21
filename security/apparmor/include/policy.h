@@ -34,6 +34,9 @@
 struct aa_ns;
 
 extern int unprivileged_userns_apparmor_policy;
+extern int unprivileged_userns_restricted;
+extern int unprivileged_userns_restricted_force;
+extern int unprivileged_userns_restricted_complain;
 
 extern const char *const aa_profile_mode_names[];
 #define APPARMOR_MODE_NAMES_MAX_INDEX 4
@@ -178,6 +181,7 @@ struct aa_attachment {
  * @disconnected: what to prepend if attach_disconnected is specified
  * @attach: attachment rules for the profile
  * @rules: rules to be enforced
+ * @net_compat: v2 compat network controls for the profile
  *
  * @dents: dentries for the profiles file entries in apparmorfs
  * @dirname: name of the profile dir in apparmorfs
@@ -209,6 +213,9 @@ struct aa_profile {
 
 	struct aa_attachment attach;
 	struct list_head rules;
+	struct aa_net_compat *net_compat;
+
+	struct aa_audit_cache learning_cache;
 
 	struct aa_loaddata *rawdata;
 	unsigned char *hash;
@@ -287,8 +294,11 @@ static inline aa_state_t RULE_MEDIATES_AF(struct aa_ruleset *rules, u16 AF)
 	aa_state_t state = RULE_MEDIATES(rules, AA_CLASS_NET);
 	__be16 be_af = cpu_to_be16(AF);
 
-	if (!state)
-		return DFA_NOMATCH;
+	if (!state) {
+		state = RULE_MEDIATES(rules, AA_CLASS_NET_COMPAT);
+		if (!state)
+			return DFA_NOMATCH;
+	}
 	return aa_dfa_match_len(rules->policy.dfa, state, (char *) &be_af, 2);
 }
 
@@ -370,9 +380,12 @@ static inline int AUDIT_MODE(struct aa_profile *profile)
 	return profile->audit;
 }
 
-bool aa_policy_view_capable(struct aa_label *label, struct aa_ns *ns);
-bool aa_policy_admin_capable(struct aa_label *label, struct aa_ns *ns);
-int aa_may_manage_policy(struct aa_label *label, struct aa_ns *ns,
+bool aa_policy_view_capable(const struct cred *subj_cred,
+			    struct aa_label *label, struct aa_ns *ns);
+bool aa_policy_admin_capable(const struct cred *subj_cred,
+			     struct aa_label *label, struct aa_ns *ns);
+int aa_may_manage_policy(const struct cred *subj_cred,
+			 struct aa_label *label, struct aa_ns *ns,
 			 u32 mask);
 bool aa_current_policy_view_capable(struct aa_ns *ns);
 bool aa_current_policy_admin_capable(struct aa_ns *ns);

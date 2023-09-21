@@ -300,6 +300,21 @@ static void quirk_mmio_always_on(struct pci_dev *dev)
 DECLARE_PCI_FIXUP_CLASS_EARLY(PCI_ANY_ID, PCI_ANY_ID,
 				PCI_CLASS_BRIDGE_HOST, 8, quirk_mmio_always_on);
 
+/* The BAR0 ~ BAR4 of Marvell 9125 device can't be accessed
+*  by IO resource file, and need to skip the files
+*/
+static void quirk_marvell_mask_bar(struct pci_dev *dev)
+{
+	int i;
+
+	for (i = 0; i < 5; i++)
+		if (dev->resource[i].start)
+			dev->resource[i].start =
+				dev->resource[i].end = 0;
+}
+DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_MARVELL_EXT, 0x9125,
+				quirk_marvell_mask_bar);
+
 /*
  * The Mellanox Tavor device gives false positive parity errors.  Disable
  * parity error reporting.
@@ -6138,3 +6153,71 @@ DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_INTEL, 0x9a2d, dpc_log_size);
 DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_INTEL, 0x9a2f, dpc_log_size);
 DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_INTEL, 0x9a31, dpc_log_size);
 #endif
+
+/*
+ * BIOS may not be able to access config space of devices under VMD domain, so
+ * it relies on software to enable ASPM for links under VMD.
+ */
+static bool pci_fixup_is_vmd_bridge(struct pci_dev *pdev)
+{
+	struct pci_bus *bus = pdev->bus;
+	struct device *dev;
+	struct pci_driver *pdrv;
+
+	if (!pci_is_root_bus(bus))
+		return false;
+
+	dev = bus->bridge->parent;
+	if (dev == NULL)
+		return false;
+
+	pdrv = pci_dev_driver(to_pci_dev(dev));
+	if (pdrv == NULL || strcmp("vmd", pdrv->name))
+		return false;
+
+	return true;
+}
+
+static void pci_fixup_enable_aspm(struct pci_dev *pdev)
+{
+	if (!pci_fixup_is_vmd_bridge(pdev))
+		return;
+
+	pdev->dev_flags |= PCI_DEV_FLAGS_ENABLE_ASPM;
+	pci_info(pdev, "enable ASPM for pci bridge behind vmd");
+}
+DECLARE_PCI_FIXUP_CLASS_HEADER(PCI_VENDOR_ID_INTEL, PCI_ANY_ID,
+			       PCI_CLASS_BRIDGE_PCI, 8, pci_fixup_enable_aspm);
+
+static void pci_fixup_enable_vmd_nvme_ltr(struct pci_dev *pdev)
+{
+	struct pci_dev *parent;
+	int pos;
+	u16 val;
+
+	parent = pci_upstream_bridge(pdev);
+	if (!parent)
+		return;
+
+	if (!pci_fixup_is_vmd_bridge(parent))
+		return;
+
+	pos = pci_find_ext_capability(pdev, PCI_EXT_CAP_ID_LTR);
+	if (!pos)
+		return;
+
+	pci_read_config_word(pdev, pos + PCI_LTR_MAX_SNOOP_LAT, &val);
+	if (val)
+		return;
+
+	pci_read_config_word(pdev, pos + PCI_LTR_MAX_NOSNOOP_LAT, &val);
+	if (val)
+		return;
+
+	/* 3145728ns, i.e. 0x300000ns */
+	pci_write_config_word(pdev, pos + PCI_LTR_MAX_SNOOP_LAT, 0x1003);
+	pci_write_config_word(pdev, pos + PCI_LTR_MAX_NOSNOOP_LAT, 0x1003);
+	pci_info(pdev, "enable LTR for nvme behind vmd");
+}
+DECLARE_PCI_FIXUP_CLASS_EARLY(PCI_ANY_ID, PCI_ANY_ID,
+			      PCI_CLASS_STORAGE_EXPRESS, 0, pci_fixup_enable_vmd_nvme_ltr);

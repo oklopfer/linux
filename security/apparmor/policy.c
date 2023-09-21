@@ -88,6 +88,9 @@
 #include "include/resource.h"
 
 int unprivileged_userns_apparmor_policy = 1;
+int unprivileged_userns_restricted = IS_ENABLED(CONFIG_SECURITY_APPARMOR_RESTRICT_USERNS);
+int unprivileged_userns_restricted_force;
+int unprivileged_userns_restricted_complain;
 
 const char *const aa_profile_mode_names[] = {
 	"enforce",
@@ -244,7 +247,7 @@ void aa_free_profile(struct aa_profile *profile)
 	struct aa_ruleset *rule, *tmp;
 	struct rhashtable *rht;
 
-	AA_DEBUG("%s(%p)\n", __func__, profile);
+	AA_DEBUG(DEBUG_POLICY, "%s(%p)\n", __func__, profile);
 
 	if (!profile)
 		return;
@@ -257,6 +260,7 @@ void aa_free_profile(struct aa_profile *profile)
 	kfree_sensitive(profile->rename);
 
 	free_attachment(&profile->attach);
+	kfree_sensitive(profile->net_compat);
 
 	/*
 	 * at this point there are no tasks that can have a reference
@@ -278,6 +282,7 @@ void aa_free_profile(struct aa_profile *profile)
 	kfree_sensitive(profile->hash);
 	aa_put_loaddata(profile->rawdata);
 	aa_label_destroy(&profile->label);
+	aa_audit_cache_destroy(&profile->learning_cache);
 
 	kfree_sensitive(profile);
 }
@@ -325,6 +330,8 @@ struct aa_profile *aa_alloc_profile(const char *hname, struct aa_proxy *proxy,
 	profile->label.hname = profile->base.hname;
 	profile->label.flags |= FLAG_PROFILE;
 	profile->label.vec[0] = profile;
+
+	aa_audit_cache_init(&profile->learning_cache);
 
 	/* refcount released by caller */
 	return profile;
@@ -721,16 +728,17 @@ static int replacement_allowed(struct aa_profile *profile, int noreplace,
 static void audit_cb(struct audit_buffer *ab, void *va)
 {
 	struct common_audit_data *sa = va;
+	struct apparmor_audit_data *ad = aad(sa);
 
-	if (aad(sa)->iface.ns) {
+	if (ad->iface.ns) {
 		audit_log_format(ab, " ns=");
-		audit_log_untrustedstring(ab, aad(sa)->iface.ns);
+		audit_log_untrustedstring(ab, ad->iface.ns);
 	}
 }
 
 /**
  * audit_policy - Do auditing of policy changes
- * @label: label to check if it can manage policy
+ * @subj_label: label to check if it can manage policy
  * @op: policy operation being performed
  * @ns_name: name of namespace being manipulated
  * @name: name of profile being manipulated (NOT NULL)
@@ -739,19 +747,19 @@ static void audit_cb(struct audit_buffer *ab, void *va)
  *
  * Returns: the error to be returned after audit is done
  */
-static int audit_policy(struct aa_label *label, const char *op,
+static int audit_policy(struct aa_label *subj_label, const char *op,
 			const char *ns_name, const char *name,
 			const char *info, int error)
 {
-	DEFINE_AUDIT_DATA(sa, LSM_AUDIT_DATA_NONE, AA_CLASS_NONE, op);
+	DEFINE_AUDIT_DATA(ad, LSM_AUDIT_DATA_NONE, AA_CLASS_NONE, op);
 
-	aad(&sa)->iface.ns = ns_name;
-	aad(&sa)->name = name;
-	aad(&sa)->info = info;
-	aad(&sa)->error = error;
-	aad(&sa)->label = label;
+	ad.iface.ns = ns_name;
+	ad.name = name;
+	ad.info = info;
+	ad.error = error;
+	ad.subj_label = subj_label;
 
-	aa_audit_msg(AUDIT_APPARMOR_STATUS, &sa, audit_cb);
+	aa_audit_msg(AUDIT_APPARMOR_STATUS, &ad, audit_cb);
 
 	return error;
 }
@@ -759,7 +767,8 @@ static int audit_policy(struct aa_label *label, const char *op,
 /* don't call out to other LSMs in the stack for apparmor policy admin
  * permissions
  */
-static int policy_ns_capable(struct aa_label *label,
+static int policy_ns_capable(const struct cred *subj_cred,
+			     struct aa_label *label,
 			     struct user_namespace *userns, int cap)
 {
 	int err;
@@ -767,23 +776,25 @@ static int policy_ns_capable(struct aa_label *label,
 	/* check for MAC_ADMIN cap in cred */
 	err = cap_capable(current_cred(), userns, cap, CAP_OPT_NONE);
 	if (!err)
-		err = aa_capable(label, cap, CAP_OPT_NONE);
+		err = aa_capable(subj_cred, label, cap, CAP_OPT_NONE);
 
 	return err;
 }
 
 /**
  * aa_policy_view_capable - check if viewing policy in at @ns is allowed
- * label: label that is trying to view policy in ns
- * ns: namespace being viewed by @label (may be NULL if @label's ns)
+ * @subj_cred: cred of subject
+ * @label: label that is trying to view policy in ns
+ * @ns: namespace being viewed by @label (may be NULL if @label's ns)
  * Returns: true if viewing policy is allowed
  *
  * If @ns is NULL then the namespace being viewed is assumed to be the
  * tasks current namespace.
  */
-bool aa_policy_view_capable(struct aa_label *label, struct aa_ns *ns)
+bool aa_policy_view_capable(const struct cred *subj_cred,
+			    struct aa_label *label, struct aa_ns *ns)
 {
-	struct user_namespace *user_ns = current_user_ns();
+	struct user_namespace *user_ns = subj_cred->user_ns;
 	struct aa_ns *view_ns = labels_view(label);
 	bool root_in_user_ns = uid_eq(current_euid(), make_kuid(user_ns, 0)) ||
 			       in_egroup_p(make_kgid(user_ns, 0));
@@ -800,15 +811,17 @@ bool aa_policy_view_capable(struct aa_label *label, struct aa_ns *ns)
 	return response;
 }
 
-bool aa_policy_admin_capable(struct aa_label *label, struct aa_ns *ns)
+bool aa_policy_admin_capable(const struct cred *subj_cred,
+			     struct aa_label *label, struct aa_ns *ns)
 {
-	struct user_namespace *user_ns = current_user_ns();
-	bool capable = policy_ns_capable(label, user_ns, CAP_MAC_ADMIN) == 0;
+	struct user_namespace *user_ns = subj_cred->user_ns;
+	bool capable = policy_ns_capable(subj_cred, label, user_ns,
+					 CAP_MAC_ADMIN) == 0;
 
-	AA_DEBUG("cap_mac_admin? %d\n", capable);
-	AA_DEBUG("policy locked? %d\n", aa_g_lock_policy);
+	AA_DEBUG(DEBUG_POLICY, "cap_mac_admin? %d\n", capable);
+	AA_DEBUG(DEBUG_POLICY, "policy locked? %d\n", aa_g_lock_policy);
 
-	return aa_policy_view_capable(label, ns) && capable &&
+	return aa_policy_view_capable(subj_cred, label, ns) && capable &&
 		!aa_g_lock_policy;
 }
 
@@ -818,7 +831,7 @@ bool aa_current_policy_view_capable(struct aa_ns *ns)
 	bool res;
 
 	label = __begin_current_label_crit_section();
-	res = aa_policy_view_capable(label, ns);
+	res = aa_policy_view_capable(current_cred(), label, ns);
 	__end_current_label_crit_section(label);
 
 	return res;
@@ -830,7 +843,7 @@ bool aa_current_policy_admin_capable(struct aa_ns *ns)
 	bool res;
 
 	label = __begin_current_label_crit_section();
-	res = aa_policy_admin_capable(label, ns);
+	res = aa_policy_admin_capable(current_cred(), label, ns);
 	__end_current_label_crit_section(label);
 
 	return res;
@@ -838,12 +851,14 @@ bool aa_current_policy_admin_capable(struct aa_ns *ns)
 
 /**
  * aa_may_manage_policy - can the current task manage policy
+ * @subj_cred: subject cred
  * @label: label to check if it can manage policy
  * @mask: contains the policy manipulation operation being done
  *
  * Returns: 0 if the task is allowed to manipulate policy else error
  */
-int aa_may_manage_policy(struct aa_label *label, struct aa_ns *ns, u32 mask)
+int aa_may_manage_policy(const struct cred *subj_cred, struct aa_label *label,
+			 struct aa_ns *ns, u32 mask)
 {
 	const char *op;
 
@@ -859,7 +874,7 @@ int aa_may_manage_policy(struct aa_label *label, struct aa_ns *ns, u32 mask)
 		return audit_policy(label, op, NULL, NULL, "policy_locked",
 				    -EACCES);
 
-	if (!aa_policy_admin_capable(label, ns))
+	if (!aa_policy_admin_capable(subj_cred, label, ns))
 		return audit_policy(label, op, NULL, NULL, "not policy admin",
 				    -EACCES);
 
@@ -1188,7 +1203,8 @@ ssize_t aa_replace_profiles(struct aa_ns *policy_ns, struct aa_label *label,
 		list_del_init(&ent->list);
 		op = (!ent->old && !ent->rename) ? OP_PROF_LOAD : OP_PROF_REPL;
 
-		if (ent->old && ent->old->rawdata == ent->new->rawdata &&
+		if (ent->old && ent->old->learning_cache.size == 0 &&
+		    ent->old->rawdata == ent->new->rawdata &&
 		    ent->new->rawdata) {
 			/* dedup actual profile replacement */
 			audit_policy(label, op, ns_name, ent->new->base.hname,

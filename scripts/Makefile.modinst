@@ -24,7 +24,9 @@ $(foreach x, % :, $(if $(findstring $x, $(dst)), \
 suffix-y				:=
 suffix-$(CONFIG_MODULE_COMPRESS_GZIP)	:= .gz
 suffix-$(CONFIG_MODULE_COMPRESS_XZ)	:= .xz
-suffix-$(CONFIG_MODULE_COMPRESS_ZSTD)	:= .zst
+## UBUNTU: Support, but do not require zstd compressed modules
+# Many external dkms and signing rely on uncompressed modules
+# suffix-$(CONFIG_MODULE_COMPRESS_ZSTD)	:= .zst
 
 modules := $(patsubst $(extmod_prefix)%.o, $(dst)/%.ko$(suffix-y), $(modules))
 
@@ -72,8 +74,11 @@ else
 sig-key := $(CONFIG_MODULE_SIG_KEY)
 endif
 quiet_cmd_sign = SIGN    $@
-      cmd_sign = scripts/sign-file $(CONFIG_MODULE_SIG_HASH) "$(sig-key)" certs/signing_key.x509 $@ \
-                 $(if $(KBUILD_EXTMOD),|| true)
+      cmd_sign = if test -e $(srctree)/debian/scripts/sign-module && \
+                    $(srctree)/debian/scripts/sign-module $@ ; \
+                 then scripts/sign-file $(CONFIG_MODULE_SIG_HASH) $(sig-key) certs/signing_key.x509 $@ \
+                      $(if $(KBUILD_EXTMOD),|| true) ; \
+                 fi
 else
 quiet_cmd_sign :=
       cmd_sign := :

@@ -34,17 +34,18 @@
 static void audit_cb(struct audit_buffer *ab, void *va)
 {
 	struct common_audit_data *sa = va;
+	struct apparmor_audit_data *ad = aad(sa);
 
-	if (aad(sa)->iface.ns) {
+	if (ad->iface.ns) {
 		audit_log_format(ab, " ns=");
-		audit_log_untrustedstring(ab, aad(sa)->iface.ns);
+		audit_log_untrustedstring(ab, ad->iface.ns);
 	}
-	if (aad(sa)->name) {
+	if (ad->name) {
 		audit_log_format(ab, " name=");
-		audit_log_untrustedstring(ab, aad(sa)->name);
+		audit_log_untrustedstring(ab, ad->name);
 	}
-	if (aad(sa)->iface.pos)
-		audit_log_format(ab, " offset=%ld", aad(sa)->iface.pos);
+	if (ad->iface.pos)
+		audit_log_format(ab, " offset=%ld", ad->iface.pos);
 }
 
 /**
@@ -63,18 +64,18 @@ static int audit_iface(struct aa_profile *new, const char *ns_name,
 		       int error)
 {
 	struct aa_profile *profile = labels_profile(aa_current_raw_label());
-	DEFINE_AUDIT_DATA(sa, LSM_AUDIT_DATA_NONE, AA_CLASS_NONE, NULL);
+	DEFINE_AUDIT_DATA(ad, LSM_AUDIT_DATA_NONE, AA_CLASS_NONE, NULL);
 	if (e)
-		aad(&sa)->iface.pos = e->pos - e->start;
-	aad(&sa)->iface.ns = ns_name;
+		ad.iface.pos = e->pos - e->start;
+	ad.iface.ns = ns_name;
 	if (new)
-		aad(&sa)->name = new->base.hname;
+		ad.name = new->base.hname;
 	else
-		aad(&sa)->name = name;
-	aad(&sa)->info = info;
-	aad(&sa)->error = error;
+		ad.name = name;
+	ad.info = info;
+	ad.error = error;
 
-	return aa_audit(AUDIT_APPARMOR_STATUS, profile, &sa, audit_cb);
+	return aa_audit(AUDIT_APPARMOR_STATUS, profile, &ad, audit_cb);
 }
 
 void __aa_loaddata_update(struct aa_loaddata *data, long revision)
@@ -264,6 +265,19 @@ static bool unpack_u8(struct aa_ext *e, u8 *data, const char *name)
 fail:
 	e->pos = pos;
 	return false;
+}
+
+VISIBLE_IF_KUNIT bool unpack_u16(struct aa_ext *e, u16 *data, const char *name)
+{
+	if (aa_unpack_nameX(e, AA_U16, name)) {
+		if (!aa_inbounds(e, sizeof(u16)))
+			return 0;
+		if (data)
+			*data = le16_to_cpu(get_unaligned((__le16 *) e->pos));
+		e->pos += sizeof(u16);
+		return 1;
+	}
+	return 0;
 }
 
 VISIBLE_IF_KUNIT bool aa_unpack_u32(struct aa_ext *e, u32 *data, const char *name)
@@ -802,6 +816,7 @@ static struct aa_profile *unpack_profile(struct aa_ext *e, char **ns_name)
 	struct aa_profile *profile = NULL;
 	const char *tmpname, *tmpns = NULL, *name = NULL;
 	const char *info = "failed to unpack profile";
+	u16 size = 0;
 	size_t ns_len;
 	struct rhashtable_params params = { 0 };
 	char *key = NULL;
@@ -967,6 +982,45 @@ static struct aa_profile *unpack_profile(struct aa_ext *e, char **ns_name)
 	if (!unpack_secmark(e, rules)) {
 		info = "failed to unpack profile secmark rules";
 		goto fail;
+	}
+
+	if (aa_unpack_array(e, "net_allowed_af", &size) ||
+	    VERSION_LT(e->version, v8)) {
+		u16 i;
+
+		profile->net_compat = kzalloc(sizeof(struct aa_net_compat),
+					      GFP_KERNEL);
+		if (!profile->net_compat) {
+			info = "out of memory";
+			goto fail;
+		}
+		for (i = 0; i < size; i++) {
+			/* discard extraneous rules that this kernel will
+			 * never request
+			 */
+			if (i >= AF_MAX) {
+				u16 tmp;
+
+				if (!unpack_u16(e, &tmp, NULL) ||
+				    !unpack_u16(e, &tmp, NULL) ||
+				    !unpack_u16(e, &tmp, NULL))
+					goto fail;
+				continue;
+			}
+			if (!unpack_u16(e, &profile->net_compat->allow[i], NULL))
+				goto fail;
+			if (!unpack_u16(e, &profile->net_compat->audit[i], NULL))
+				goto fail;
+			if (!unpack_u16(e, &profile->net_compat->quiet[i], NULL))
+				goto fail;
+		}
+		if (size && !aa_unpack_nameX(e, AA_ARRAYEND, NULL))
+			goto fail;
+		if (VERSION_LT(e->version, v7)) {
+			/* pre v7 policy always allowed these */
+			profile->net_compat->allow[AF_UNIX] = 0xffff;
+			profile->net_compat->allow[AF_NETLINK] = 0xffff;
+		}
 	}
 
 	if (aa_unpack_nameX(e, AA_STRUCT, "policydb")) {

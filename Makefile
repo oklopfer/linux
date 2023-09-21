@@ -554,6 +554,9 @@ LINUXINCLUDE    := \
 		-I$(objtree)/include \
 		$(USERINCLUDE)
 
+# UBUNTU: Include our third party driver stuff too
+LINUXINCLUDE   += -I$(srctree)/ubuntu/include
+
 KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
 
 KBUILD_CFLAGS :=
@@ -1366,8 +1369,9 @@ export INSTALL_HDR_PATH = $(objtree)/usr
 quiet_cmd_headers_install = INSTALL $(INSTALL_HDR_PATH)/include
       cmd_headers_install = \
 	mkdir -p $(INSTALL_HDR_PATH); \
-	rsync -mrl --include='*/' --include='*\.h' --exclude='*' \
-	usr/include $(INSTALL_HDR_PATH)
+	find usr/include -type f -name '*.h' -print0 | \
+	tar -czf - --null --no-recursion --no-wildcards-match-slash -T- | \
+	tar -xzf - --strip-components=1 -C $(INSTALL_HDR_PATH)
 
 PHONY += headers_install
 headers_install: headers
@@ -1382,6 +1386,7 @@ headers: $(version_h) scripts_unifdef uapi-asm-generic archheaders archscripts
 	$(if $(filter um, $(SRCARCH)), $(error Headers not exportable for UML))
 	$(Q)$(MAKE) $(hdr-inst)=include/uapi
 	$(Q)$(MAKE) $(hdr-inst)=arch/$(SRCARCH)/include/uapi
+	$(Q)$(MAKE) $(hdr-inst)=ubuntu/include dst=include oldheaders=
 
 ifdef CONFIG_HEADERS_INSTALL
 prepare: headers
@@ -1601,7 +1606,7 @@ CLEAN_FILES += include/ksym vmlinux.symvers modules-only.symvers \
 # Directories & files removed with 'make mrproper'
 MRPROPER_FILES += include/config include/generated          \
 		  arch/$(SRCARCH)/include/generated .objdiff \
-		  debian snap tar-install \
+		  snap tar-install \
 		  .config .config.old .version \
 		  Module.symvers \
 		  certs/signing_key.pem \

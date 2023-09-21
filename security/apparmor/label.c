@@ -429,7 +429,7 @@ struct aa_label *aa_label_alloc(int size, struct aa_proxy *proxy, gfp_t gfp)
 
 	/*  + 1 for null terminator entry on vec */
 	new = kzalloc(struct_size(new, vec, size + 1), gfp);
-	AA_DEBUG("%s (%p)\n", __func__, new);
+	AA_DEBUG(DEBUG_LABEL, "%s (%p)\n", __func__, new);
 	if (!new)
 		goto fail;
 
@@ -455,7 +455,7 @@ fail:
 
 
 /**
- * label_cmp - label comparison for set ordering
+ * aa_label_cmp - label comparison for set ordering
  * @a: label to compare (NOT NULL)
  * @b: label to compare (NOT NULL)
  *
@@ -463,7 +463,7 @@ fail:
  *          ==0 if a == b
  *          >0  if a > b
  */
-static int label_cmp(struct aa_label *a, struct aa_label *b)
+int aa_label_cmp(struct aa_label *a, struct aa_label *b)
 {
 	AA_BUG(!b);
 
@@ -677,7 +677,7 @@ static struct aa_label *__label_insert(struct aa_labelset *ls,
 	new = &ls->root.rb_node;
 	while (*new) {
 		struct aa_label *this = rb_entry(*new, struct aa_label, node);
-		int result = label_cmp(label, this);
+		int result = aa_label_cmp(label, this);
 
 		parent = *new;
 		if (result == 0) {
@@ -1632,7 +1632,7 @@ int aa_label_snxprint(char *str, size_t size, struct aa_ns *ns,
 	AA_BUG(!str && size != 0);
 	AA_BUG(!label);
 
-	if (AA_DEBUG_LABEL && (flags & FLAG_ABS_ROOT)) {
+	if (DEBUG_ABS_ROOT && (flags & FLAG_ABS_ROOT)) {
 		ns = root_ns;
 		len = snprintf(str, size, "_");
 		update_for_len(total, len, size, str);
@@ -1746,7 +1746,7 @@ void aa_label_xaudit(struct audit_buffer *ab, struct aa_ns *ns,
 	    display_mode(ns, label, flags)) {
 		len  = aa_label_asxprint(&name, ns, label, flags, gfp);
 		if (len < 0) {
-			AA_DEBUG("label print error");
+			AA_DEBUG(DEBUG_LABEL, "label print error");
 			return;
 		}
 		str = name;
@@ -1774,7 +1774,7 @@ void aa_label_seq_xprint(struct seq_file *f, struct aa_ns *ns,
 
 		len = aa_label_asxprint(&str, ns, label, flags, gfp);
 		if (len < 0) {
-			AA_DEBUG("label print error");
+			AA_DEBUG(DEBUG_LABEL, "label print error");
 			return;
 		}
 		seq_puts(f, str);
@@ -1797,7 +1797,7 @@ void aa_label_xprintk(struct aa_ns *ns, struct aa_label *label, int flags,
 
 		len = aa_label_asxprint(&str, ns, label, flags, gfp);
 		if (len < 0) {
-			AA_DEBUG("label print error");
+			AA_DEBUG(DEBUG_LABEL, "label print error");
 			return;
 		}
 		pr_info("%s", str);
@@ -1896,7 +1896,7 @@ struct aa_label *aa_label_strn_parse(struct aa_label *base, const char *str,
 	AA_BUG(!str);
 
 	str = skipn_spaces(str, n);
-	if (str == NULL || (AA_DEBUG_LABEL && *str == '_' &&
+	if (str == NULL || (DEBUG_ABS_ROOT && *str == '_' &&
 			    base != &root_ns->unconfined->label))
 		return ERR_PTR(-EINVAL);
 

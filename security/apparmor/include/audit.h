@@ -19,6 +19,7 @@
 
 #include "file.h"
 #include "label.h"
+#include "notify.h"
 
 extern const char *const audit_mode_names[];
 #define AUDIT_MAX_INDEX 5
@@ -38,6 +39,7 @@ enum audit_type {
 	AUDIT_APPARMOR_STATUS,
 	AUDIT_APPARMOR_ERROR,
 	AUDIT_APPARMOR_KILL,
+	AUDIT_APPARMOR_USER,
 	AUDIT_APPARMOR_AUTO
 };
 
@@ -103,17 +105,22 @@ enum audit_type {
 #define OP_PROF_LOAD "profile_load"
 #define OP_PROF_RM "profile_remove"
 
+#define OP_USERNS_CREATE "userns_create"
 
 struct apparmor_audit_data {
 	int error;
 	int type;
 	u16 class;
 	const char *op;
-	struct aa_label *label;
+	const struct cred *subj_cred;
+	struct aa_label *subj_label;
 	const char *name;
 	const char *info;
 	u32 request;
 	u32 denied;
+
+	struct task_struct *subjtsk;
+
 	union {
 		/* these entries require a custom callback fn */
 		struct {
@@ -137,6 +144,9 @@ struct apparmor_audit_data {
 					void *addr;
 					int addrlen;
 				} net;
+				struct {
+					kuid_t ouid;
+				} mq;
 			};
 		};
 		struct {
@@ -152,33 +162,71 @@ struct apparmor_audit_data {
 			unsigned long flags;
 		} mnt;
 	};
+
+	struct common_audit_data common;
 };
 
+struct aa_audit_node {
+	struct apparmor_audit_data data;
+	struct list_head list;
+	struct aa_knotif knotif;
+};
+extern struct kmem_cache *aa_audit_slab;
+
+static inline struct aa_audit_node *aa_alloc_audit_node(gfp_t gfp)
+{
+	return kmem_cache_zalloc(aa_audit_slab, gfp);
+}
+
+
+struct aa_audit_cache {
+	spinlock_t lock;
+	int size;
+	struct list_head head;
+};
+
+static inline void aa_audit_cache_init(struct aa_audit_cache *cache)
+{
+	cache->size = 0;
+	spin_lock_init(&cache->lock);
+	INIT_LIST_HEAD(&cache->head);
+}
+
+struct aa_audit_node *aa_audit_cache_find(struct aa_audit_cache *cache,
+					  struct apparmor_audit_data *ad);
+struct aa_audit_node *aa_audit_cache_insert(struct aa_audit_cache *cache,
+					    struct aa_audit_node *node);
+void aa_audit_cache_update_ent(struct aa_audit_cache *cache,
+			       struct aa_audit_node *node,
+			       struct apparmor_audit_data *data);
+void aa_audit_cache_destroy(struct aa_audit_cache *cache);
+
+
+
 /* macros for dealing with  apparmor_audit_data structure */
-#define aad(SA) ((SA)->apparmor_audit_data)
+#define aad(SA) (container_of(SA, struct apparmor_audit_data, common))
 #define DEFINE_AUDIT_DATA(NAME, T, C, X)				\
 	/* TODO: cleanup audit init so we don't need _aad = {0,} */	\
-	struct apparmor_audit_data NAME ## _aad = {                     \
+	struct apparmor_audit_data NAME = {				\
 		.class = (C),						\
 		.op = (X),                                              \
-	};                                                              \
-	struct common_audit_data NAME =					\
-	{								\
-	.type = (T),							\
-	.u.tsk = NULL,							\
-	};								\
-	NAME.apparmor_audit_data = &(NAME ## _aad)
+		.subjtsk = NULL,                                        \
+		.common.type = (T),					\
+		.common.u.tsk = NULL,					\
+		.common.apparmor_audit_data = &NAME,			\
+	};
 
-void aa_audit_msg(int type, struct common_audit_data *sa,
+void aa_audit_msg(int type, struct apparmor_audit_data *ad,
 		  void (*cb) (struct audit_buffer *, void *));
-int aa_audit(int type, struct aa_profile *profile, struct common_audit_data *sa,
+int aa_audit(int type, struct aa_profile *profile,
+	     struct apparmor_audit_data *ad,
 	     void (*cb) (struct audit_buffer *, void *));
 
-#define aa_audit_error(ERROR, SA, CB)				\
+#define aa_audit_error(ERROR, AD, CB)				\
 ({								\
-	aad((SA))->error = (ERROR);				\
-	aa_audit_msg(AUDIT_APPARMOR_ERROR, (SA), (CB));		\
-	aad((SA))->error;					\
+	(AD)->error = (ERROR);					\
+	aa_audit_msg(AUDIT_APPARMOR_ERROR, (AD), (CB));		\
+	(AD)->error;					\
 })
 
 
@@ -193,5 +241,12 @@ void aa_audit_rule_free(void *vrule);
 int aa_audit_rule_init(u32 field, u32 op, char *rulestr, void **vrule);
 int aa_audit_rule_known(struct audit_krule *rule);
 int aa_audit_rule_match(u32 sid, u32 field, u32 op, void *vrule);
+
+
+void aa_audit_node_free(struct aa_audit_node *node);
+struct aa_audit_node *aa_dup_audit_data(struct apparmor_audit_data *orig,
+					gfp_t gfp);
+long aa_audit_data_cmp(struct apparmor_audit_data *lhs,
+		       struct apparmor_audit_data *rhs);
 
 #endif /* __AA_AUDIT_H */

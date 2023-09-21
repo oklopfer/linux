@@ -261,7 +261,10 @@ for ((I).i = (I).j = 0;							\
 	struct label_it i;						\
 	int ret = 0;							\
 	label_for_each(i, (L), profile) {				\
-		if (RULE_MEDIATES(&profile->rules, (C))) {		\
+		struct aa_ruleset *rules =				\
+			list_first_entry(&profile->rules, typeof(*rules),\
+					 list);				\
+		if (RULE_MEDIATES(rules, (C))) {			\
 			ret = 1;					\
 			break;						\
 		}							\
@@ -270,6 +273,7 @@ for ((I).i = (I).j = 0;							\
 })
 
 
+int aa_label_cmp(struct aa_label *a, struct aa_label *b);
 void aa_labelset_destroy(struct aa_labelset *ls);
 void aa_labelset_init(struct aa_labelset *ls);
 void __aa_labelset_update_subtree(struct aa_ns *ns);

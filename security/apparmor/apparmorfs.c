@@ -24,6 +24,7 @@
 #include <linux/zstd.h>
 #include <uapi/linux/major.h>
 #include <uapi/linux/magic.h>
+#include <uapi/linux/apparmor.h>
 
 #include "include/apparmor.h"
 #include "include/apparmorfs.h"
@@ -423,7 +424,7 @@ static ssize_t policy_update(u32 mask, const char __user *buf, size_t size,
 	/* high level check about policy management - fine grained in
 	 * below after unpack
 	 */
-	error = aa_may_manage_policy(label, ns, mask);
+	error = aa_may_manage_policy(current_cred(), label, ns, mask);
 	if (error)
 		goto end_section;
 
@@ -486,7 +487,8 @@ static ssize_t profile_remove(struct file *f, const char __user *buf,
 	/* high level check about policy management - fine grained in
 	 * below after unpack
 	 */
-	error = aa_may_manage_policy(label, ns, AA_MAY_REMOVE_POLICY);
+	error = aa_may_manage_policy(current_cred(), label, ns,
+				     AA_MAY_REMOVE_POLICY);
 	if (error)
 		goto out;
 
@@ -606,6 +608,171 @@ static const struct file_operations aa_fs_ns_revision_fops = {
 	.read		= ns_revision_read,
 	.llseek		= generic_file_llseek,
 	.release	= ns_revision_release,
+};
+
+
+/* file hook fn for notificaions of policy actions */
+static int listener_release(struct inode *inode, struct file *file)
+{
+	struct aa_listener *listener = file->private_data;
+
+	if (listener)
+		aa_put_listener(listener);
+
+	return 0;
+}
+
+static int listener_open(struct inode *inode, struct file *file)
+{
+	struct aa_listener *listener;
+
+	listener = aa_new_listener(NULL, GFP_KERNEL);
+	if (!listener)
+		return -ENOMEM;
+	file->private_data = listener;
+	return 0;
+}
+
+/* todo: separate register and set filter */
+static long notify_set_filter(struct aa_listener *listener,
+			      unsigned long arg)
+{
+	struct apparmor_notif_filter *unotif;
+	struct aa_ns *ns = NULL;
+	long ret;
+	u16 size;
+	void __user *buf = (void __user *)arg;
+
+	if (copy_from_user(&size, buf, sizeof(size)))
+		return -EFAULT;
+	if (size < sizeof(unotif))
+		return -EINVAL;
+	/* todo upper limit on allocation size */
+	unotif = kzalloc(size, GFP_KERNEL);
+	if (!unotif)
+		return -ENOMEM;
+
+	if (copy_from_user(unotif, buf, size))
+		return -EFAULT;
+
+	ret = size;
+
+	/* todo validate to known modes */
+	listener->mask = unotif->modeset;
+	AA_DEBUG(DEBUG_UPCALL, "setting filter mask to 0x%x", listener->mask);
+	if (unotif->ns)
+		/* todo */
+		ns = NULL;
+	if (unotif->filter)
+		; /* todo */
+
+	if (!aa_register_listener_proxy(listener, ns))
+		ret = -ENOMEM;
+	kfree(unotif);
+
+	return ret;
+}
+
+
+static long notify_user_recv(struct aa_listener *listener,
+			     unsigned long arg)
+{
+	u16 max_size;
+	void __user *buf = (void __user *)arg;
+
+	if (copy_from_user(&max_size, buf, sizeof(max_size)))
+		return -EFAULT;
+	/* size check handled by individual message handlers */
+	return aa_listener_unotif_recv(listener, buf, max_size);
+}
+
+static long notify_user_response(struct aa_listener *listener,
+				 unsigned long arg)
+{
+	struct apparmor_notif_resp uresp = {};
+	u16 size;
+	void __user *buf = (void __user *)arg;
+
+	if (copy_from_user(&size, buf, sizeof(size)))
+		return -EFAULT;
+	size = min_t(size_t, size, sizeof(uresp));
+	if (copy_from_user(&uresp, buf, size))
+		return -EFAULT;
+
+	return aa_listener_unotif_response(listener, &uresp, size);
+}
+
+
+static long notify_is_id_valid(struct aa_listener *listener,
+			       unsigned long arg)
+{
+	void __user *buf = (void __user *)arg;
+	u64 id;
+	long ret = -ENOENT;
+
+	if (copy_from_user(&id, buf, sizeof(id)))
+		return -EFAULT;
+
+	spin_lock(&listener->lock);
+	if (__aa_find_notif(listener, id))
+		ret = 0;
+	spin_unlock(&listener->lock);
+
+	return ret;
+}
+
+static long listener_ioctl(struct file *file, unsigned int cmd,
+			 unsigned long arg)
+{
+	struct aa_listener *listener = file->private_data;
+
+	if (!listener)
+		return -EINVAL;
+
+	/* todo permission to issue these commands */
+	switch (cmd) {
+	case APPARMOR_NOTIF_SET_FILTER:
+		return notify_set_filter(listener, arg);
+	case APPARMOR_NOTIF_RECV:
+		return notify_user_recv(listener, arg);
+	case APPARMOR_NOTIF_SEND:
+		return notify_user_response(listener, arg);
+	case APPARMOR_NOTIF_IS_ID_VALID:
+		return notify_is_id_valid(listener, arg);
+	default:
+		return -EINVAL;
+
+	}
+
+	return -EINVAL;
+}
+
+static __poll_t listener_poll(struct file *file, poll_table *pt)
+{
+	struct aa_listener *listener = file->private_data;
+	__poll_t mask = 0;
+
+	if (listener) {
+		spin_lock(&listener->lock);
+		poll_wait(file, &listener->wait, pt);
+		if (!list_empty(&listener->notifications))
+			mask |= EPOLLIN | EPOLLRDNORM;
+		if (!list_empty(&listener->pending))
+			mask |= EPOLLOUT | EPOLLWRNORM;
+		spin_unlock(&listener->lock);
+	}
+
+	return mask;
+}
+
+static const struct file_operations aa_sfs_notify_fops = {
+	.owner          = THIS_MODULE,
+	.open           = listener_open,
+	.poll           = listener_poll,
+//	.read           = notification_read,
+	.llseek         = generic_file_llseek,
+	.release        = listener_release,
+	.unlocked_ioctl = listener_ioctl,
 };
 
 static void profile_query_cb(struct aa_profile *profile, struct aa_perms *perms,
@@ -1121,10 +1288,24 @@ static int seq_profile_hash_show(struct seq_file *seq, void *v)
 	return 0;
 }
 
+static int seq_profile_learning_count_show(struct seq_file *seq, void *v)
+{
+	struct aa_proxy *proxy = seq->private;
+	struct aa_label *label = aa_get_label_rcu(&proxy->label);
+	struct aa_profile *profile = labels_profile(label);
+	int count = READ_ONCE(profile->learning_cache.size);
+
+	seq_printf(seq, "%d\n", count);
+	aa_put_label(label);
+
+	return 0;
+}
+
 SEQ_PROFILE_FOPS(name);
 SEQ_PROFILE_FOPS(mode);
 SEQ_PROFILE_FOPS(attach);
 SEQ_PROFILE_FOPS(hash);
+SEQ_PROFILE_FOPS(learning_count);
 
 /*
  * namespace based files
@@ -1739,6 +1920,12 @@ int __aafs_profile_mkdir(struct aa_profile *profile, struct dentry *parent)
 		goto fail;
 	profile->dents[AAFS_PROF_ATTACH] = dent;
 
+	dent = create_profile_file(dir, "learning_count", profile,
+				   &seq_profile_learning_count_fops);
+	if (IS_ERR(dent))
+		goto fail;
+	profile->dents[AAFS_PROF_LEARNING_COUNT] = dent;
+
 	if (profile->hash) {
 		dent = create_profile_file(dir, "sha1", profile,
 					   &seq_profile_hash_fops);
@@ -1802,7 +1989,8 @@ static int ns_mkdir_op(struct mnt_idmap *idmap, struct inode *dir,
 	int error;
 
 	label = begin_current_label_crit_section();
-	error = aa_may_manage_policy(label, NULL, AA_MAY_LOAD_POLICY);
+	error = aa_may_manage_policy(current_cred(), label, NULL,
+				     AA_MAY_LOAD_POLICY);
 	end_current_label_crit_section(label);
 	if (error)
 		return error;
@@ -1851,7 +2039,8 @@ static int ns_rmdir_op(struct inode *dir, struct dentry *dentry)
 	int error;
 
 	label = begin_current_label_crit_section();
-	error = aa_may_manage_policy(label, NULL, AA_MAY_LOAD_POLICY);
+	error = aa_may_manage_policy(current_cred(), label, NULL,
+				     AA_MAY_LOAD_POLICY);
 	end_current_label_crit_section(label);
 	if (error)
 		return error;
@@ -2311,6 +2500,12 @@ static struct aa_sfs_entry aa_sfs_entry_file[] = {
 	{ }
 };
 
+static struct aa_sfs_entry aa_sfs_entry_ipc[] = {
+	AA_SFS_FILE_STRING("posix_mqueue",
+			   "create read write open delete setattr getattr"),
+	{ }
+};
+
 static struct aa_sfs_entry aa_sfs_entry_ptrace[] = {
 	AA_SFS_FILE_STRING("mask", "read trace"),
 	{ }
@@ -2353,6 +2548,8 @@ static struct aa_sfs_entry aa_sfs_entry_policy[] = {
 	AA_SFS_FILE_BOOLEAN("set_load",		1),
 	/* number of out of band transitions supported */
 	AA_SFS_FILE_U64("outofband",		MAX_OOB_SUPPORTED),
+	AA_SFS_FILE_U64("permstable32_version",	2),
+	AA_SFS_FILE_STRING("permstable32", "allow deny subtree cond kill complain prompt audit quiet hide xindex tag label"),
 	{ }
 };
 
@@ -2364,6 +2561,12 @@ static struct aa_sfs_entry aa_sfs_entry_mount[] = {
 static struct aa_sfs_entry aa_sfs_entry_ns[] = {
 	AA_SFS_FILE_BOOLEAN("profile",		1),
 	AA_SFS_FILE_BOOLEAN("pivot_root",	0),
+	AA_SFS_FILE_STRING("mask", "userns_create"),
+	{ }
+};
+
+static struct aa_sfs_entry aa_sfs_entry_dbus[] = {
+	AA_SFS_FILE_STRING("mask", "acquire send receive"),
 	{ }
 };
 
@@ -2382,7 +2585,9 @@ static struct aa_sfs_entry aa_sfs_entry_features[] = {
 	AA_SFS_DIR("policy",			aa_sfs_entry_policy),
 	AA_SFS_DIR("domain",			aa_sfs_entry_domain),
 	AA_SFS_DIR("file",			aa_sfs_entry_file),
+	AA_SFS_DIR("ipc",			aa_sfs_entry_ipc),
 	AA_SFS_DIR("network_v8",		aa_sfs_entry_network),
+	AA_SFS_DIR("network",			aa_sfs_entry_network_compat),
 	AA_SFS_DIR("mount",			aa_sfs_entry_mount),
 	AA_SFS_DIR("namespaces",		aa_sfs_entry_ns),
 	AA_SFS_FILE_U64("capability",		VFS_CAP_FLAGS_MASK),
@@ -2390,12 +2595,14 @@ static struct aa_sfs_entry aa_sfs_entry_features[] = {
 	AA_SFS_DIR("caps",			aa_sfs_entry_caps),
 	AA_SFS_DIR("ptrace",			aa_sfs_entry_ptrace),
 	AA_SFS_DIR("signal",			aa_sfs_entry_signal),
+	AA_SFS_DIR("dbus",			aa_sfs_entry_dbus),
 	AA_SFS_DIR("query",			aa_sfs_entry_query),
 	{ }
 };
 
 static struct aa_sfs_entry aa_sfs_entry_apparmor[] = {
 	AA_SFS_FILE_FOPS(".access", 0666, &aa_sfs_access),
+	AA_SFS_FILE_FOPS(".notify", 0666, &aa_sfs_notify_fops),
 	AA_SFS_FILE_FOPS(".stacked", 0444, &seq_ns_stacked_fops),
 	AA_SFS_FILE_FOPS(".ns_stacked", 0444, &seq_ns_nsstacked_fops),
 	AA_SFS_FILE_FOPS(".ns_level", 0444, &seq_ns_level_fops),
