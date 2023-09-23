@@ -8,7 +8,7 @@ build_phone:
     ARCH: arm64
     CROSS_COMPILE: aarch64-linux-gnu-
     KBUILD_DEBARCH: arm64
-    LOCALVERSION: -okpine
+    LOCALVERSION: -okpine-ut
   before_script:
     - if ! [[ -d /lib/firmware ]]; then mkdir /lib/firmware; fi
     - cp -r linux-firmware/* /lib/firmware
