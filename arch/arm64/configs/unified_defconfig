@@ -1727,8 +1727,8 @@ CONFIG_PREVENT_FIRMWARE_BUILD=y
 CONFIG_FW_LOADER=y
 CONFIG_FW_LOADER_DEBUG=y
 CONFIG_FW_LOADER_PAGED_BUF=y
-CONFIG_EXTRA_FIRMWARE="regulatory.db regulatory.db.p7s anx7688-fw.bin rtl_bt/rtl8723cs_xx_config.bin rtl_bt/rtl8723cs_xx_fw.bin ov5640_af.bin brcm/brcmfmac43455-sdio.bin brcm/brcmfmac43455-sdio.pine64,pinephone-pro.txt brcm/brcmfmac43455-sdio.clm_blob brcm/BCM4345C0.hcd rockchip/dptx.bin"
-CONFIG_EXTRA_FIRMWARE_DIR="/lib/firmware"
+#CONFIG_EXTRA_FIRMWARE="regulatory.db regulatory.db.p7s anx7688-fw.bin rtl_bt/rtl8723cs_xx_config.bin rtl_bt/rtl8723cs_xx_fw.bin ov5640_af.bin brcm/brcmfmac43455-sdio.bin brcm/brcmfmac43455-sdio.pine64,pinephone-pro.txt brcm/brcmfmac43455-sdio.clm_blob brcm/BCM4345C0.hcd rockchip/dptx.bin"
+#CONFIG_EXTRA_FIRMWARE_DIR="/lib/firmware"
 # CONFIG_FW_LOADER_USER_HELPER is not set
 CONFIG_FW_LOADER_COMPRESS=y
 CONFIG_FW_LOADER_COMPRESS_XZ=y
